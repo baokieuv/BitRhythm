@@ -25,12 +25,12 @@ public record ApiResponseFormat<T>(
      * @param message A human-readable error message.
      * @param details Optional list of specific validation errors or other details.
      */
-//    @JsonInclude(JsonInclude.Include.NON_NULL)
-//    public record ApiError<E>(
-//            String code,
-//            String message,
-//            E details
-//    ) {}
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record ApiError<E>(
+            String code,
+            String message,
+            E details
+    ) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record ApiData<E>(

@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.3.0</version>
+		<version>4.1.1</version> <!-- must match core's Spring Boot version -->
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.bit_rhythm</groupId>
@@ -28,83 +28,53 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
-		<core.version>0.0.2-SNAPSHOT</core.version>
+		<core.version>0.0.1-SNAPSHOT</core.version>
 		<jjwt.version>0.13.0</jjwt.version>
-		<totp.version>1.7.1</totp.version>
-		<bcprov.version>1.80</bcprov.version>
+		<bucket4j.version>8.15.0</bucket4j.version>
 		<maven.compiler.source>21</maven.compiler.source>
 		<maven.compiler.target>21</maven.compiler.target>
 	</properties>
 	<dependencies>
+		<!-- core already brings in: starter-web, starter-data-jpa, starter-validation,
+			 starter-actuator and the micrometer tracing libraries -->
 		<dependency>
 			<groupId>com.bit-rhythm</groupId>
 			<artifactId>core</artifactId>
 			<version>${core.version}</version>
 		</dependency>
 
-		<!-- Web & Validation -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-validation</artifactId>
-		</dependency>
-
-		<!-- Security & Auth Specifics -->
+		<!-- Security (includes BCryptPasswordEncoder) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-redis</artifactId>
-		</dependency>
-		<!-- Argon2PasswordEncoder needs BouncyCastle on the classpath -->
-		<dependency>
-			<groupId>org.bouncycastle</groupId>
-			<artifactId>bcprov-jdk18on</artifactId>
-			<version>${bcprov.version}</version>
-		</dependency>
-		<!-- MFA: TOTP generation/verification + QR code -->
-		<dependency>
-			<groupId>dev.samstevens.totp</groupId>
-			<artifactId>totp</artifactId>
-			<version>${totp.version}</version>
-		</dependency>
 
-		<!-- Persistence -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jpa</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
-		</dependency>
-		<!-- Flyway 10+ ships MariaDB/MySQL support in a separate module -->
-		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-mysql</artifactId>
-		</dependency>
-
-		<!-- Database Driver -->
+		<!-- Database driver -->
 		<dependency>
 			<groupId>org.mariadb.jdbc</groupId>
 			<artifactId>mariadb-java-client</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 
-		<!-- Operations: health probes + Prometheus metrics -->
+		<!-- Cache: Redis is used for caching only -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-actuator</artifactId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>io.micrometer</groupId>
-			<artifactId>micrometer-registry-prometheus</artifactId>
-			<scope>runtime</scope>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+
+		<!-- Rate limiting: Bucket4j token buckets, kept in memory per client IP (Caffeine evicts idle ones) -->
+		<dependency>
+			<groupId>com.bucket4j</groupId>
+			<artifactId>bucket4j_jdk17-core</artifactId>
+			<version>${bucket4j.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
 		</dependency>
 
 		<!-- Email (verification / password reset) -->
@@ -113,7 +83,7 @@
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 
-		<!-- Utilities -->
+		<!-- Utilities (optional in core, so it is not passed on: keep it here) -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -139,30 +109,10 @@
 			<scope>runtime</scope>
 		</dependency>
 
-		<!-- Testing -->
+		<!-- Testing (test scope is not passed on from core, so keep it here) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-testcontainers</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.testcontainers</groupId>
-			<artifactId>junit-jupiter</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.testcontainers</groupId>
-			<artifactId>mariadb</artifactId>
 			<scope>test</scope>
 		</dependency>
 

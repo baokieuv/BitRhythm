@@ -15,13 +15,13 @@ import java.time.Instant;
 public abstract class BaseEntity {
 
     @CreationTimestamp
-    @Column(name = "created_date", updatable = false)
-    private Instant createdDate;
+    @Column(name = "created_at", updatable = false)
+    protected Instant createdAt;
 
     @UpdateTimestamp
-    @Column(name = "last_modified_date")
-    private Instant lastModifiedDate;
+    @Column(name = "updated_at")
+    protected Instant updatedAt;
 
-    @Column(nullable = false)
-    private boolean active = true;
+    @Column(name = "is_deleted", nullable = false)
+    protected boolean is_deleted = false;
 }

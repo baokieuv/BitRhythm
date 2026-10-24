@@ -1,13 +1,14 @@
 package com.bit_rhythm.auth_service.user;
 
+import com.bit_rhythm.auth_service.rbac.Role;
 import com.bit_rhythm.core.entity.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -50,4 +51,13 @@ public class User extends BaseEntity {
 
     @Column(name = "version", nullable = false)
     private Long version;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            schema = "auth_service",
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
 }

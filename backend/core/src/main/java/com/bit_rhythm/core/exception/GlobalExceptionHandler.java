@@ -3,88 +3,51 @@ package com.bit_rhythm.core.exception;
 import com.bit_rhythm.core.dto.ApiResponseFormat;
 import com.bit_rhythm.core.dto.FieldErrorDetail;
 import com.bit_rhythm.core.utils.ResponseFactory;
+import jakarta.validation.ConstraintViolationException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 @Slf4j
-@ControllerAdvice
-class GlobalExceptionHandler {
+@RestControllerAdvice
+@RequiredArgsConstructor
+public class GlobalExceptionHandler {
 
     private final ResponseFactory responseFactory;
-    private static final String BASE_PACKAGE = "com.soict.smart_bin";
-
-    public GlobalExceptionHandler(ResponseFactory responseFactory) {
-        this.responseFactory = responseFactory;
-    }
 
     /**
-     * Helper method: Trích xuất và in log chi tiết ra console (không trả về API)
-     */
-    private void logExceptionDetails(String context, Exception ex) {
-        // 1. Tìm Root Cause
-        Throwable rootCause = ex;
-        while (rootCause.getCause() != null && rootCause.getCause() != rootCause) {
-            rootCause = rootCause.getCause();
-        }
-
-        // 2. Lọc StackTrace để tìm file/hàm gây lỗi thuộc project
-        StackTraceElement errorSource = null;
-        for (StackTraceElement element : ex.getStackTrace()) {
-            if (element.getClassName().startsWith(BASE_PACKAGE)) {
-                errorSource = element;
-                break;
-            }
-        }
-
-        // Nếu không tìm thấy trong package của project, lấy dòng đầu tiên của StackTrace
-        if (errorSource == null && ex.getStackTrace().length > 0) {
-            errorSource = ex.getStackTrace()[0];
-        }
-
-//        // 3. Format vị trí lỗi
-//        String location = errorSource != null
-//                ? String.format("File: %s | Class: %s | Method: %s | Line: %d",
-//                errorSource.getFileName(), errorSource.getClassName(), errorSource.getMethodName(), errorSource.getLineNumber())
-//                : "Unknown location";
-
-        // 4. Print log rành mạch ra console
-//        log.error("========== ERROR DETAILS ==========");
-//        log.error("Context    : {}", context);
-//        log.error("Message    : {}", ex.getMessage());
-//        log.error("Root Cause : {}", rootCause.toString());
-//        log.error("Location   : {}", location);
-        log.error("Stack Trace: ", ex);
-//        log.error("===================================");
-    }
-
-    /**
-     * Xử lý các lỗi nghiệp vụ (Business Logic) chủ động ném ra từ hệ thống
+     * Handles custom business logic exceptions explicitly thrown by the application.
      */
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ApiResponseFormat<Object>> handleApiException(ApiException ex, Locale locale) {
         ApiResponseCode errorCode = ex.getErrorCode();
 
-        // Ghi log chi tiết dưới console
-        logExceptionDetails(String.format("ApiException occurred: code=%s, message='%s'", errorCode.getCode(), errorCode.getMessage()), ex);
+        // Use log.warn for business errors to avoid cluttering error logs, but include stacktrace
+        log.warn("ApiException: code={}, message='{}'", errorCode.getCode(), errorCode.getMessage(), ex);
 
         ApiResponseFormat.ApiData<Object> errorResponse = new ApiResponseFormat.ApiData<>(
                 false,
                 errorCode.getCode(),
                 errorCode.getMessage(),
-                ex.getData() // Trả về data đi kèm của lỗi nghiệp vụ (nếu có)
+                ex.getData()
         );
         return new ResponseEntity<>(responseFactory.response(errorResponse, ex.getMessageArguments()), errorCode.getHttpStatus());
     }
 
+    /**
+     * Handles @Valid / @Validated DTO binding errors.
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponseFormat<Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         CoreErrorCode errorCode = CoreErrorCode.VALIDATION_ERROR;
@@ -95,49 +58,100 @@ class GlobalExceptionHandler {
                 .map(error -> new FieldErrorDetail(error.getField(), error.getDefaultMessage()))
                 .toList();
 
-        // Ghi log chi tiết
-        logExceptionDetails("Validation failed for input parameters", ex);
+        log.warn("MethodArgumentNotValidException: {}", details, ex);
 
         ApiResponseFormat.ApiData<Object> errorResponse = new ApiResponseFormat.ApiData<>(false, errorCode.getCode(), errorCode.getMessage(), details);
         return new ResponseEntity<>(responseFactory.response(errorResponse), errorCode.getHttpStatus());
     }
 
+    /**
+     * Handles @Validated constraint violations on single path variables or request params.
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResponseFormat<Object>> handleConstraintViolationException(ConstraintViolationException ex) {
+        CoreErrorCode errorCode = CoreErrorCode.VALIDATION_ERROR;
+
+        List<FieldErrorDetail> details = ex.getConstraintViolations()
+                .stream()
+                .map(violation -> new FieldErrorDetail(violation.getPropertyPath().toString(), violation.getMessage()))
+                .toList();
+
+        log.warn("ConstraintViolationException: {}", details, ex);
+
+        ApiResponseFormat.ApiData<Object> errorResponse = new ApiResponseFormat.ApiData<>(false, errorCode.getCode(), errorCode.getMessage(), details);
+        return new ResponseEntity<>(responseFactory.response(errorResponse), errorCode.getHttpStatus());
+    }
+
+    /**
+     * Handles type mismatches (e.g., passing a String to an Integer @PathVariable).
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponseFormat<Object>> handleTypeMismatchException(MethodArgumentTypeMismatchException ex) {
+        CoreErrorCode errorCode = CoreErrorCode.BAD_REQUEST;
+
+        String detailMessage = String.format("Parameter '%s' should be of type '%s'", ex.getName(),
+                ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "Unknown");
+
+        log.warn("MethodArgumentTypeMismatchException: {}", detailMessage, ex);
+
+        ApiResponseFormat.ApiData<Object> errorResponse = new ApiResponseFormat.ApiData<>(false, errorCode.getCode(), errorCode.getMessage(), detailMessage);
+        return new ResponseEntity<>(responseFactory.response(errorResponse), errorCode.getHttpStatus());
+    }
+
+    /**
+     * Handles malformed JSON requests.
+     */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponseFormat<Object>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
         CoreErrorCode errorCode = CoreErrorCode.MALFORMED_REQUEST_BODY;
-
-        // Ghi log chi tiết
-        logExceptionDetails("Malformed JSON request body", ex);
+        log.warn("HttpMessageNotReadableException: Malformed JSON request body", ex);
 
         ApiResponseFormat.ApiData<Object> errorResponse = new ApiResponseFormat.ApiData<>(false, errorCode.getCode(), errorCode.getMessage(), null);
         return new ResponseEntity<>(responseFactory.response(errorResponse), errorCode.getHttpStatus());
     }
 
+    /**
+     * Handles missing mandatory query parameters.
+     */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiResponseFormat<Object>> handleMissingServletRequestParameter(MissingServletRequestParameterException ex) {
         CoreErrorCode errorCode = CoreErrorCode.MISSING_REQUEST_PARAMETER;
-
         Map<String, String> details = Map.of("parameterName", ex.getParameterName());
 
-        // Ghi log chi tiết
-        logExceptionDetails("Missing Required Request Parameter: " + ex.getParameterName(), ex);
+        log.warn("MissingServletRequestParameterException: {}", ex.getParameterName(), ex);
 
         ApiResponseFormat.ApiData<Object> errorResponse = new ApiResponseFormat.ApiData<>(false, errorCode.getCode(), errorCode.getMessage(), details);
         return new ResponseEntity<>(responseFactory.response(errorResponse), errorCode.getHttpStatus());
     }
 
+    /**
+     * Handles wrong HTTP methods (e.g., sending GET to a POST endpoint).
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiResponseFormat<Object>> handleMethodNotSupportedException(HttpRequestMethodNotSupportedException ex) {
+        CoreErrorCode errorCode = CoreErrorCode.METHOD_NOT_ALLOWED;
+        log.warn("HttpRequestMethodNotSupportedException: {}", ex.getMessage(), ex);
+
+        ApiResponseFormat.ApiData<Object> errorResponse = new ApiResponseFormat.ApiData<>(false, errorCode.getCode(), errorCode.getMessage(), null);
+        return new ResponseEntity<>(responseFactory.response(errorResponse), errorCode.getHttpStatus());
+    }
+
+    /**
+     * Fallback for all other unhandled exceptions (500 Internal Server Error).
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponseFormat<Object>> handleGenericException(Exception ex) {
         CoreErrorCode errorCode = CoreErrorCode.INTERNAL_SERVER_ERROR;
 
-        // Ghi log chi tiết
-        logExceptionDetails("Unexpected Internal Server Error", ex);
+        // Log ERROR level with full stack trace for unexpected crashes
+        log.error("Unhandled Exception: ", ex);
 
-        // API Response chỉ trả về thông báo chung, data = null
+        // Security fix: Do NOT return ex.getMessage() to the client, as it may expose database queries or internal logic.
+        // Use the generic message defined in CoreErrorCode instead.
         ApiResponseFormat.ApiData<Object> errorResponse = new ApiResponseFormat.ApiData<>(
                 false,
                 errorCode.getCode(),
-                ex.getMessage(),
+                errorCode.getMessage(),
                 null
         );
 
