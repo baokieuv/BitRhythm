@@ -7,15 +7,13 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.UUID;
-
 @Entity
 @Table(schema = "auth_service", name = "permissions")
 @Getter
 @Setter
 public class Permission extends BaseEntity {
     @Column(name = "id", nullable = false, unique = true)
-    private UUID id;
+    private Long id;
 
     @Column(name = "name", nullable = false, unique = true)
     private String name;

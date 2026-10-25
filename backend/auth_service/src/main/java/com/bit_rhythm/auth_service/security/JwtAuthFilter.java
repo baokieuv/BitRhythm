@@ -51,11 +51,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
                 // Extract roles list from claims
                 List<String> roles = claims.get("roles", List.class);
+                List<String> permissionList = claims.get("permissions", List.class);
 
                 AuthUser principal = new AuthUser(
                         UUID.fromString(claims.getSubject()),
                         claims.get("email", String.class),
-                        roles); // Updated to pass the list of roles
+                        roles,
+                        permissionList); // Updated to pass the list of roles
 
                 // Map string roles to Spring Security SimpleGrantedAuthority objects
                 List<SimpleGrantedAuthority> authorities = roles.stream()

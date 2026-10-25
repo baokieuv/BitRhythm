@@ -41,6 +41,7 @@ public enum CoreErrorCode implements ApiResponseCode {
 
     // --- Data & Concurrency Errors ---
     RESOURCE_ALREADY_EXISTS(false, "AVT0019", "error.resource_already_exists", HttpStatus.CONFLICT),
+    RESOURCE_IN_USE(false, "AVT0034", "error.resource_in_use", HttpStatus.CONFLICT), // e.g., trying to delete a role that is assigned to users
     DATA_INTEGRITY_VIOLATION(false, "AVT0020", "error.data_integrity_violation", HttpStatus.CONFLICT),
     OPTIMISTIC_LOCKING_FAILURE(false, "AVT0021", "error.optimistic_locking_failure", HttpStatus.CONFLICT),
 

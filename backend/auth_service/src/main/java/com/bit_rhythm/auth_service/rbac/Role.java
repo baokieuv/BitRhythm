@@ -1,13 +1,15 @@
 package com.bit_rhythm.auth_service.rbac;
 
+import com.bit_rhythm.auth_service.rbac.dto.request.CreateRoleRequest;
+import com.bit_rhythm.auth_service.rbac.dto.request.UpdateRoleRequest;
 import com.bit_rhythm.core.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.beans.BeanUtils;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 @Entity
 @Table(schema = "auth_service", name = "roles")
@@ -15,7 +17,8 @@ import java.util.UUID;
 @Getter
 public class Role extends BaseEntity {
     @Column(name = "id", nullable = false, unique = true)
-    private UUID id;
+    @Id
+    private Long id;
 
     @Column(name = "name", nullable = false, unique = true)
     private String name;
@@ -31,4 +34,16 @@ public class Role extends BaseEntity {
             inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
     private Set<Permission> permissions = new HashSet<>();
+
+    public Role(CreateRoleRequest request) {
+        BeanUtils.copyProperties(request, this);
+        this.name = request.name().toUpperCase();
+        this.description = request.description();
+    }
+
+    public void update(UpdateRoleRequest request) {
+        BeanUtils.copyProperties(request, this);
+        this.name = request.name().toUpperCase();
+        this.description = request.description();
+    }
 }

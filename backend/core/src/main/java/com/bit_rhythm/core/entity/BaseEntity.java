@@ -1,5 +1,6 @@
 package com.bit_rhythm.core.entity;
 
+import com.bit_rhythm.core.common.CommonEnums;
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
@@ -23,5 +24,5 @@ public abstract class BaseEntity {
     protected Instant updatedAt;
 
     @Column(name = "is_deleted", nullable = false)
-    protected boolean is_deleted = false;
+    protected Integer isDeleted = CommonEnums.DeletedStatus.NOT_DELETED.getCode();
 }

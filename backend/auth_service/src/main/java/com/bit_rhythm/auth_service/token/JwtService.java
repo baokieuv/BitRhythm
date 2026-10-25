@@ -1,6 +1,7 @@
 package com.bit_rhythm.auth_service.token;
 
 import com.bit_rhythm.auth_service.config.JwtProperties;
+import com.bit_rhythm.auth_service.rbac.Permission;
 import com.bit_rhythm.auth_service.rbac.Role;
 import com.bit_rhythm.auth_service.user.User;
 import io.jsonwebtoken.Claims;
@@ -17,7 +18,7 @@ import java.util.stream.Collectors;
 
 /**
  * Issues and parses access tokens. HMAC-signed (HS256 family) with the single secret from jwt.secret.
- * Claims: sub = user id, email, role, iat, exp.
+ * Claims: sub = user id, email, roles, iat, exp.
  */
 @Service
 public class JwtService {
@@ -38,10 +39,17 @@ public class JwtService {
                 .map(Role::getName)
                 .toList();
 
+        List<String> permissionNames = user.getRoles().stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(Permission::getName)
+                .distinct()
+                .toList();
+
         return Jwts.builder()
                 .subject(user.getId().toString())
                 .claim("email", user.getEmail())
                 .claim("roles", roleNames)
+                .claim("permissions", permissionNames)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(properties.accessTokenTtl())))
                 .signWith(key)
