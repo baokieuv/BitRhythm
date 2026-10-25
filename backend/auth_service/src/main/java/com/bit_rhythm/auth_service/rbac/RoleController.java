@@ -1,10 +1,7 @@
 package com.bit_rhythm.auth_service.rbac;
 
 import com.bit_rhythm.auth_service.common.exception.AuthCode;
-import com.bit_rhythm.auth_service.rbac.dto.request.AssignPermissionsRequest;
-import com.bit_rhythm.auth_service.rbac.dto.request.CreateRoleRequest;
-import com.bit_rhythm.auth_service.rbac.dto.request.RemovePermissionsRequest;
-import com.bit_rhythm.auth_service.rbac.dto.request.UpdateRoleRequest;
+import com.bit_rhythm.auth_service.rbac.dto.request.*;
 import com.bit_rhythm.core.dto.ApiResponseFormat;
 import com.bit_rhythm.core.utils.ResponseFactory;
 import jakarta.validation.Valid;
@@ -32,9 +29,10 @@ public class RoleController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('read:roles')")
-    public ResponseEntity<ApiResponseFormat<Object>> getAllRoles() {
+    public ResponseEntity<ApiResponseFormat<Object>> getAllRoles(
+            @Valid @RequestBody RoleSearchRequest request) {
 
-        return responseFactory.response(AuthCode.SUCCESS, rbacService.getAllRoles());
+        return responseFactory.response(AuthCode.SUCCESS, rbacService.getAllRoles(request));
     }
 
     @GetMapping("/{roleId}")

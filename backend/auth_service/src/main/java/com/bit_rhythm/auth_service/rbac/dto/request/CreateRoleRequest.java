@@ -1,3 +1,9 @@
 package com.bit_rhythm.auth_service.rbac.dto.request;
 
-public record CreateRoleRequest(String name, String description) {}
+import jakarta.validation.constraints.NotBlank;
+
+public record CreateRoleRequest(
+        @NotBlank(message = "Role name is required")
+        String name,
+        String description
+) {}

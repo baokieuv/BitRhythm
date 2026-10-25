@@ -18,4 +18,14 @@ public record PermissionResponse(
                 permission.getUpdatedAt().toString()
         );
     }
+
+    public PermissionResponse(Permission permission) {
+        this(
+                permission.getId(),
+                permission.getName(),
+                permission.getDescription(),
+                permission.getCreatedAt().toString(),
+                permission.getUpdatedAt().toString()
+        );
+    }
 }

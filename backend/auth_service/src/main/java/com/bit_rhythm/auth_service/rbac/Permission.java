@@ -1,11 +1,14 @@
 package com.bit_rhythm.auth_service.rbac;
 
+import com.bit_rhythm.auth_service.rbac.dto.request.CreatePermissionRequest;
+import com.bit_rhythm.auth_service.rbac.dto.request.UpdatePermissionRequest;
 import com.bit_rhythm.core.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.beans.BeanUtils;
 
 @Entity
 @Table(schema = "auth_service", name = "permissions")
@@ -20,4 +23,16 @@ public class Permission extends BaseEntity {
 
     @Column(name = "description", nullable = true)
     private String description;
+
+    public Permission(CreatePermissionRequest request) {
+        BeanUtils.copyProperties(request, this);
+        this.name = request.name().toUpperCase();
+        this.description = request.description();
+    }
+
+    public void update(UpdatePermissionRequest request) {
+        BeanUtils.copyProperties(request, this);
+        this.name = request.name().toUpperCase();
+        this.description = request.description();
+    }
 }
