@@ -15,7 +15,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -54,7 +53,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 List<String> permissionList = claims.get("permissions", List.class);
 
                 AuthUser principal = new AuthUser(
-                        UUID.fromString(claims.getSubject()),
+                        Long.parseLong(claims.getSubject()),
                         claims.get("email", String.class),
                         roles,
                         permissionList); // Updated to pass the list of roles

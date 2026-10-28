@@ -5,6 +5,9 @@ import com.bit_rhythm.auth_service.rbac.dto.request.UpdatePermissionRequest;
 import com.bit_rhythm.core.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,6 +18,8 @@ import org.springframework.beans.BeanUtils;
 @Getter
 @Setter
 public class Permission extends BaseEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false, unique = true)
     private Long id;
 

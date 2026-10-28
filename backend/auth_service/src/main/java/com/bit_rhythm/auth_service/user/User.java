@@ -9,15 +9,16 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 @Entity
 @Table(schema = "auth_service", name = "users")
 @Getter
 @Setter
 public class User extends BaseEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false, unique = true)
-    private UUID id;
+    private Long id;
 
     @Column(name = "username", nullable = false, unique = true)
     private String username;

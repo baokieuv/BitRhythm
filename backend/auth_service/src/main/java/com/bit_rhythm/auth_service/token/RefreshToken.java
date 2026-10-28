@@ -3,26 +3,30 @@ package com.bit_rhythm.auth_service.token;
 import com.bit_rhythm.core.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(schema = "auth_service", name = "refresh_tokens")
 @Getter
 @Setter
 public class RefreshToken extends BaseEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false, unique = true)
-    private UUID id;
+    private Long id;
 
     @Column(name = "user_id", nullable = false)
-    private UUID userId;
+    private Long userId;
 
     @Column(name = "family_id", nullable = false)
-    private UUID familyId;
+    private Long familyId;
 
     @Column(name = "token_hash", nullable = false, unique = true)
     private String tokenHash;
@@ -40,7 +44,7 @@ public class RefreshToken extends BaseEntity {
     private String revokedReason;
 
     @Column(name = "revoked_by", nullable = true)
-    private UUID revokedBy;
+    private Long revokedBy;
 
     @Column(name = "ip_address", nullable = true)
     private String ipAddress;
