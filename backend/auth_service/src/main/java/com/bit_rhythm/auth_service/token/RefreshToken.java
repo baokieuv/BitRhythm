@@ -39,18 +39,18 @@ public class RefreshToken extends BaseEntity {
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
 
-    @Column(name = "revoked_at", nullable = true)
+    @Column(name = "revoked_at")
     private LocalDateTime revokedAt;
 
-    @Column(name = "revoked_reason", nullable = true)
+    @Column(name = "revoked_reason")
     private String revokedReason;
 
-    @Column(name = "revoked_by", nullable = true)
+    @Column(name = "revoked_by")
     private Long revokedBy;
 
-    @Column(name = "ip_address", nullable = true)
+    @Column(name = "ip_address")
     private String ipAddress;
 
-    @Column(name = "user_agent", nullable = true)
+    @Column(name = "user_agent")
     private String userAgent;
 }

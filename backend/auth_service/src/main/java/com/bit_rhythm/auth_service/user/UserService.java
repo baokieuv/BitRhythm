@@ -3,6 +3,7 @@ package com.bit_rhythm.auth_service.user;
 import com.bit_rhythm.auth_service.auth.dto.request.RegisterRequest;
 import com.bit_rhythm.auth_service.common.exception.AuthCode;
 import com.bit_rhythm.auth_service.common.exception.AuthException;
+import com.bit_rhythm.auth_service.rbac.Role;
 import com.bit_rhythm.auth_service.rbac.RoleRepository;
 import com.bit_rhythm.core.common.CommonEnums;
 import com.bit_rhythm.core.exception.ApiException;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.HashSet;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +34,14 @@ public class UserService {
             throw new AuthException(AuthCode.USER_ALREADY_EXISTS);
         }
 
+        HashSet<Role> roles = new HashSet<>();
+        Role userRole = roleRepository.findByNameIgnoreCaseAndIsDeleted(
+                "USER",
+                CommonEnums.DeletedStatus.NOT_DELETED.getCode());
+        if (userRole != null) {
+            roles.add(userRole);
+        }
+
         User user = User.builder()
                 .username(username)
                 .email(email)
@@ -42,16 +52,10 @@ public class UserService {
                 .failedLoginAttempts(0)
                 .version(0L)
                 .passwordChangedAt(LocalDateTime.now())
-                .roles(new java.util.HashSet<>())
+                .roles(roles)
                 .build();
 
         return userRepository.save(user);
-    }
-
-    @Transactional(readOnly = true)
-    public User findByIdentifier(String identifier) {
-        return findOptionalByIdentifier(identifier)
-                .orElseThrow(() -> new ApiException(CoreErrorCode.RESOURCE_NOT_FOUND));
     }
 
     @Transactional(readOnly = true)
@@ -78,9 +82,9 @@ public class UserService {
     }
 
     @Transactional
-    public User updatePassword(User user, String newPassword) {
+    public void updatePassword(User user, String newPassword) {
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setPasswordChangedAt(LocalDateTime.now());
-        return userRepository.save(user);
+        userRepository.save(user);
     }
 }

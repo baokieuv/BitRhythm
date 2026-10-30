@@ -97,7 +97,7 @@ public class AuthService {
     }
 
     @Transactional
-    public void changePassword(ChangePasswordRequest request, Long userId, String ipAddress, String userAgent) {
+    public void changePassword(ChangePasswordRequest request, Long userId) {
         User user = userService.findById(userId);
         if (user == null || !passwordEncoder.matches(request.oldPassword(), user.getPasswordHash())) {
             throw new AuthException(AuthCode.INVALID_CREDENTIALS);

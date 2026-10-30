@@ -26,7 +26,7 @@ public class Permission extends BaseEntity {
     @Column(name = "name", nullable = false, unique = true)
     private String name;
 
-    @Column(name = "description", nullable = true)
+    @Column(name = "description")
     private String description;
 
     public Permission(CreatePermissionRequest request) {

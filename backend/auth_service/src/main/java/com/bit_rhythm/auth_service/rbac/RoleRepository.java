@@ -20,7 +20,7 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
 
     boolean existsByPermissionsContainingAndIsDeleted(Permission permission, Integer isDeleted);
 
-    List<Role> findAllByIsDeleted(Integer isDeleted);
+    List<Role> findAllByIdInAndIsDeleted(List<Long> ids, Integer isDeleted);
 
     @Query("SELECT r FROM Role r WHERE r.isDeleted = :status " +
             "AND (:name IS NULL OR LOWER(r.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +

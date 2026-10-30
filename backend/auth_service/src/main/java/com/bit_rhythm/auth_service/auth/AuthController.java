@@ -49,9 +49,9 @@ public class AuthController {
     @PostMapping("/change-password")
     public ResponseEntity<ApiResponseFormat<Object>> changePassword(
             @Valid @RequestBody ChangePasswordRequest request,
-            @AuthenticationPrincipal AuthUser user, HttpServletRequest servletRequest)
+            @AuthenticationPrincipal AuthUser user)
     {
-        authService.changePassword(request, user.id(), servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+        authService.changePassword(request, user.id());
         return responseFactory.response(AuthCode.SUCCESS, null);
     }
 
