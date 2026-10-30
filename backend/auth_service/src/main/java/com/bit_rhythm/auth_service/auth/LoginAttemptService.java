@@ -2,7 +2,7 @@ package com.bit_rhythm.auth_service.auth;
 
 import com.bit_rhythm.auth_service.user.User;
 import com.bit_rhythm.auth_service.user.UserRepository;
-import com.bit_rhythm.auth_service.user.UserStatus;
+import com.bit_rhythm.auth_service.common.enums.UserStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

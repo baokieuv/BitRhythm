@@ -1,6 +1,7 @@
 package com.bit_rhythm.auth_service.user;
 
 import com.bit_rhythm.auth_service.auth.dto.request.RegisterRequest;
+import com.bit_rhythm.auth_service.common.enums.UserStatus;
 import com.bit_rhythm.auth_service.common.exception.AuthCode;
 import com.bit_rhythm.auth_service.common.exception.AuthException;
 import com.bit_rhythm.auth_service.rbac.Role;

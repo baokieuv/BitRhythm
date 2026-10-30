@@ -1,5 +1,6 @@
 package com.bit_rhythm.auth_service.verification;
 
+import com.bit_rhythm.auth_service.common.enums.Purpose;
 import com.bit_rhythm.auth_service.common.exception.AuthCode;
 import com.bit_rhythm.auth_service.common.exception.AuthException;
 import com.bit_rhythm.auth_service.common.util.CryptoService;
@@ -9,7 +10,7 @@ import com.bit_rhythm.auth_service.event.UserEventPublisher;
 import com.bit_rhythm.auth_service.user.User;
 import com.bit_rhythm.auth_service.user.UserRepository;
 import com.bit_rhythm.auth_service.user.UserService;
-import com.bit_rhythm.auth_service.user.UserStatus;
+import com.bit_rhythm.auth_service.common.enums.UserStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,25 +21,12 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class VerificationService {
 
-    public enum Purpose {
-        EMAIL_VERIFICATION,
-        PASSWORD_RESET
-    }
-
     private final OneTimeTokenRepository tokenRepository;
     private final UserRepository userRepository;
     private final CryptoService cryptoService;
     private final AppProperties appProperties;
     private final UserEventPublisher userEventPublisher;
     private final UserService userService;
-
-    /**
-     * Creates and sends an email-verification token.
-     */
-    @Transactional
-    public void issue(User user) {
-        issue(user, Purpose.EMAIL_VERIFICATION);
-    }
 
     /**
      * Creates and sends a token for the requested verification purpose.
@@ -82,15 +70,6 @@ public class VerificationService {
         userService.findOptionalByEmail(email)
                 .filter(user -> !Boolean.TRUE.equals(user.getEmailVerified()))
                 .ifPresent(user -> issue(user, Purpose.EMAIL_VERIFICATION));
-    }
-
-    /**
-     * Requests a reset without revealing whether the email exists.
-     */
-    @Transactional
-    public void requestPasswordReset(String email) {
-        userService.findOptionalByEmail(email)
-                .ifPresent(user -> issue(user, Purpose.PASSWORD_RESET));
     }
 
     @Transactional

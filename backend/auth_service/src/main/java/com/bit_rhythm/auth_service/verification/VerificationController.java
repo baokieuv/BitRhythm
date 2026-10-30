@@ -1,11 +1,11 @@
 package com.bit_rhythm.auth_service.verification;
 
 import com.bit_rhythm.auth_service.common.exception.AuthCode;
+import com.bit_rhythm.auth_service.verification.dto.request.ResendVerificationRequest;
+import com.bit_rhythm.auth_service.verification.dto.request.VerificationRequest;
 import com.bit_rhythm.core.dto.ApiResponseFormat;
 import com.bit_rhythm.core.utils.ResponseFactory;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,11 +33,5 @@ public class VerificationController {
             @Valid @RequestBody ResendVerificationRequest request) {
         verificationService.resend(request.email());
         return responseFactory.response(AuthCode.SUCCESS, null);
-    }
-
-    public record VerificationRequest(@NotBlank String token) {
-    }
-
-    public record ResendVerificationRequest(@NotBlank @Email String email) {
     }
 }

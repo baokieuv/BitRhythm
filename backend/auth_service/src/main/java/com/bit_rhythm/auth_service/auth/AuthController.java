@@ -84,8 +84,9 @@ public class AuthController {
 
     @PostMapping("/logout-all")
     public ResponseEntity<ApiResponseFormat<Object>> logoutAll(
-            @RequestParam Long userId) {
-        authService.logoutAllSessions(userId);
+            @AuthenticationPrincipal AuthUser user
+    ) {
+        authService.logoutAllSessions(user.id());
         return responseFactory.response(AuthCode.SUCCESS, null);
     }
 }

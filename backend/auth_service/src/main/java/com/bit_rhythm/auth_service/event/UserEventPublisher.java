@@ -1,5 +1,6 @@
 package com.bit_rhythm.auth_service.event;
 
+import com.bit_rhythm.auth_service.common.enums.Purpose;
 import com.bit_rhythm.auth_service.config.AppProperties;
 import com.bit_rhythm.auth_service.user.User;
 import com.bit_rhythm.auth_service.verification.VerificationService;
@@ -28,17 +29,17 @@ public class UserEventPublisher {
     // (e.g., the method that saves the User or VerificationToken to the DB).
     @Transactional(propagation = Propagation.REQUIRED)
     public void publishVerificationNotification(
-            User user, String rawToken, VerificationService.Purpose purpose) {
+            User user, String rawToken, Purpose purpose) {
 
-        String baseUrl = purpose == VerificationService.Purpose.PASSWORD_RESET
+        String baseUrl = purpose == Purpose.PASSWORD_RESET
                 ? appProperties.resetPasswordUrl()
                 : appProperties.verifyEmailUrl();
         String actionUrl = baseUrl + "?token=" +
                 URLEncoder.encode(rawToken, StandardCharsets.UTF_8);
-        String eventType = purpose == VerificationService.Purpose.PASSWORD_RESET
+        String eventType = purpose == Purpose.PASSWORD_RESET
                 ? "PASSWORD_RESET_REQUESTED"
                 : "EMAIL_VERIFICATION_REQUESTED";
-        String subject = purpose == VerificationService.Purpose.PASSWORD_RESET
+        String subject = purpose == Purpose.PASSWORD_RESET
                 ? "Reset your BitRhythm password"
                 : "Verify your BitRhythm account";
 

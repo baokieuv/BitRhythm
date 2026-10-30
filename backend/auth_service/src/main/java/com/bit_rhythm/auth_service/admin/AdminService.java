@@ -8,7 +8,7 @@ import com.bit_rhythm.auth_service.rbac.RoleRepository;
 import com.bit_rhythm.auth_service.token.RefreshTokenService;
 import com.bit_rhythm.auth_service.user.User;
 import com.bit_rhythm.auth_service.user.UserRepository;
-import com.bit_rhythm.auth_service.user.UserStatus;
+import com.bit_rhythm.auth_service.common.enums.UserStatus;
 import com.bit_rhythm.core.common.CommonEnums;
 import com.bit_rhythm.core.exception.ApiException;
 import com.bit_rhythm.core.exception.CoreErrorCode;

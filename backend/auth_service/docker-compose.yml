@@ -1,4 +1,32 @@
 services:
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: gateway/Dockerfile
+    image: bitrhythm/api-gateway:latest
+    container_name: bitrhythm_api_gateway
+    restart: unless-stopped
+    init: true
+    environment:
+      GATEWAY_PORT: 8080
+      AUTH_SERVICE_URL: http://auth-service:8081
+      USER_SERVICE_URL: ${USER_SERVICE_URL:-http://user-service:8082}
+      CONTENT_SERVICE_URL: ${CONTENT_SERVICE_URL:-http://content-service:8083}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY must be set}
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    networks:
+      - auth_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8080/health > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
   auth-service:
     build:
       context: ..
