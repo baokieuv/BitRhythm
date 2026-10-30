@@ -77,10 +77,10 @@
 			<artifactId>caffeine</artifactId>
 		</dependency>
 
-		<!-- Email (verification / password reset) -->
+		<!-- Notification commands are consumed by notification_service. -->
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-mail</artifactId>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka</artifactId>
 		</dependency>
 
 		<!-- Utilities (optional in core, so it is not passed on: keep it here) -->

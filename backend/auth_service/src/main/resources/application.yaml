@@ -33,15 +33,16 @@ spring:
     redis:
       time-to-live: 10m
 
-  # Email: in development just leave this out. The verification link is then printed in the log.
-  # mail:
-  #   host: smtp.example.com
-  #   port: 587
-  #   username: ${MAIL_USERNAME}
-  #   password: ${MAIL_PASSWORD}
-  #   properties:
-  #     mail.smtp.auth: true
-  #     mail.smtp.starttls.enable: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        "[spring.json.add.type.headers]": false
+        "[acks]": all
+        "[enable.idempotence]": true
+        "[delivery.timeout.ms]": 120000
 
 server:
   port: 8081
@@ -58,8 +59,8 @@ app:
   verification-token-ttl: 24h
   verify-email-url: ${VERIFY_EMAIL_URL:http://localhost:3000/verify-email}   # frontend page that POSTs the token to /auth/verify-email
   reset-password-url: ${RESET_PASSWORD_URL:http://localhost:3000/reset-password}
-  mail-from: ${MAIL_FROM:no-reply@localhost}
   internal-api-key: ${INTERNAL_API_KEY}   # required. Other services send it in the X-Internal-Api-Key header
+  notification-topic: ${NOTIFICATION_TOPIC:notification.events}
 
   # Rate limiting (Bucket4j, in memory, per client IP). "capacity" POST requests allowed per "period".
   rate-limit:

@@ -5,7 +5,7 @@ import com.bit_rhythm.auth_service.common.exception.AuthException;
 import com.bit_rhythm.auth_service.common.util.CryptoService;
 import com.bit_rhythm.auth_service.common.util.TokenGenerator;
 import com.bit_rhythm.auth_service.config.AppProperties;
-import com.bit_rhythm.auth_service.notification.MailService;
+import com.bit_rhythm.auth_service.event.UserEventPublisher;
 import com.bit_rhythm.auth_service.user.User;
 import com.bit_rhythm.auth_service.user.UserRepository;
 import com.bit_rhythm.auth_service.user.UserService;
@@ -29,7 +29,7 @@ public class VerificationService {
     private final UserRepository userRepository;
     private final CryptoService cryptoService;
     private final AppProperties appProperties;
-    private final MailService mailService;
+    private final UserEventPublisher userEventPublisher;
     private final UserService userService;
 
     /**
@@ -61,7 +61,7 @@ public class VerificationService {
                 .build();
 
         tokenRepository.save(token);
-        mailService.sendVerification(user, rawToken, purpose);
+        userEventPublisher.publishVerificationNotification(user, rawToken, purpose);
     }
 
     @Transactional

@@ -10,8 +10,8 @@ public record AppProperties(
         Duration verificationTokenTtl,
         String verifyEmailUrl,
         String resetPasswordUrl,
-        String mailFrom,
         String internalApiKey,
+        String notificationTopic,
         RateLimit rateLimit
 ) {
 
