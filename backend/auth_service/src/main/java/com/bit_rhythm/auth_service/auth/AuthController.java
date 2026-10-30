@@ -29,7 +29,7 @@ public class AuthController {
     public ResponseEntity<ApiResponseFormat<Object>> register(
             @Valid @RequestBody RegisterRequest request) {
         return responseFactory.response(AuthCode.SUCCESS,
-                new AuthService.RegisteredUser(authService.register(request)));
+                authService.register(request));
     }
 
     @PostMapping("/login")
@@ -44,6 +44,12 @@ public class AuthController {
             @Valid @RequestBody RefreshTokenRequest request, HttpServletRequest servletRequest) {
         return responseFactory.response(AuthCode.SUCCESS,
                 authService.refresh(request, servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent")));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponseFormat<Object>> me(
+            @AuthenticationPrincipal AuthUser user) {
+        return responseFactory.response(AuthCode.SUCCESS, authService.me(user.id()));
     }
 
     @PostMapping("/change-password")

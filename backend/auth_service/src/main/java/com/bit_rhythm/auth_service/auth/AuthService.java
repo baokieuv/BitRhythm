@@ -6,6 +6,7 @@ import com.bit_rhythm.auth_service.auth.dto.request.RefreshTokenRequest;
 import com.bit_rhythm.auth_service.auth.dto.request.RegisterRequest;
 import com.bit_rhythm.auth_service.auth.dto.request.ResetPasswordRequest;
 import com.bit_rhythm.auth_service.auth.dto.response.TokenResponse;
+import com.bit_rhythm.auth_service.auth.dto.response.UserResponse;
 import com.bit_rhythm.auth_service.common.exception.AuthCode;
 import com.bit_rhythm.auth_service.common.exception.AuthException;
 import com.bit_rhythm.auth_service.config.JwtProperties;
@@ -38,10 +39,10 @@ public class AuthService {
     private final VerificationService verificationService;
 
     @Transactional
-    public User register(RegisterRequest request) {
+    public UserResponse register(RegisterRequest request) {
         User user = userService.register(request);
         verificationService.issue(user);
-        return user;
+        return new UserResponse(user);
     }
 
     @Transactional
@@ -84,6 +85,12 @@ public class AuthService {
                 rotated.rawToken(),
                 "Bearer",
                 durationSeconds(jwtProperties.accessTokenTtl()));
+    }
+
+    @Transactional(readOnly = true)
+    public UserResponse me(Long userId) {
+        User user = userService.findById(userId);
+        return new UserResponse(user);
     }
 
     @Transactional
@@ -145,11 +152,5 @@ public class AuthService {
 
     private long durationSeconds(Duration duration) {
         return Math.max(1, duration.toSeconds());
-    }
-
-    public record RegisteredUser(Long id, String username, String email) {
-        public RegisteredUser(User user) {
-            this(user.getId(), user.getUsername(), user.getEmail());
-        }
     }
 }
