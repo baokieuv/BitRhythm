@@ -47,10 +47,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 Claims claims = jwtService.parse(header.substring(BEARER_PREFIX.length()).trim());
+                if (!"access".equals(claims.get("token_type", String.class))) {
+                    chain.doFilter(request, response);
+                    return;
+                }
 
                 // Extract roles list from claims
                 List<String> roles = claims.get("roles", List.class);
                 List<String> permissionList = claims.get("permissions", List.class);
+                roles = roles == null ? List.of() : roles;
+                permissionList = permissionList == null ? List.of() : permissionList;
 
                 AuthUser principal = new AuthUser(
                         Long.parseLong(claims.getSubject()),

@@ -57,6 +57,7 @@ jwt:
 app:
   verification-token-ttl: 24h
   verify-email-url: ${VERIFY_EMAIL_URL:http://localhost:3000/verify-email}   # frontend page that POSTs the token to /auth/verify-email
+  reset-password-url: ${RESET_PASSWORD_URL:http://localhost:3000/reset-password}
   mail-from: ${MAIL_FROM:no-reply@localhost}
   internal-api-key: ${INTERNAL_API_KEY}   # required. Other services send it in the X-Internal-Api-Key header
 
@@ -67,6 +68,7 @@ app:
       - { path: /auth/login,               capacity: 10, period: 1m }
       - { path: /auth/register,            capacity: 5,  period: 1m }
       - { path: /auth/resend-verification, capacity: 5,  period: 15m }
+      - { path: /auth/request-password-reset, capacity: 5, period: 15m }
       - { path: /auth/verify-email,        capacity: 10, period: 1m }
       - { path: /auth/refresh,             capacity: 30, period: 1m }
 

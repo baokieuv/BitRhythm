@@ -9,6 +9,7 @@ import java.util.List;
 public record AppProperties(
         Duration verificationTokenTtl,
         String verifyEmailUrl,
+        String resetPasswordUrl,
         String mailFrom,
         String internalApiKey,
         RateLimit rateLimit

@@ -3,8 +3,7 @@ package com.bit_rhythm.auth_service.user;
 import com.bit_rhythm.auth_service.rbac.Role;
 import com.bit_rhythm.core.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -14,6 +13,9 @@ import java.util.Set;
 @Table(schema = "auth_service", name = "users")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class User extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

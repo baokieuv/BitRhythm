@@ -14,6 +14,7 @@ import javax.crypto.SecretKey;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Issues and parses access tokens. HMAC-signed (HS256 family) with the single secret from jwt.secret.
@@ -49,6 +50,8 @@ public class JwtService {
                 .claim("email", user.getEmail())
                 .claim("roles", roleNames)
                 .claim("permissions", permissionNames)
+                .claim("token_type", "access")
+                .id(UUID.randomUUID().toString())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(properties.accessTokenTtl())))
                 .signWith(key)
