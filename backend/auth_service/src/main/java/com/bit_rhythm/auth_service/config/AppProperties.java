@@ -12,8 +12,12 @@ public record AppProperties(
         String resetPasswordUrl,
         String internalApiKey,
         String notificationTopic,
+        Admin admin,
         RateLimit rateLimit
 ) {
+
+    public record Admin(String email, String username, String password) {
+    }
 
     public record RateLimit(boolean enabled, List<Rule> rules) {
         public RateLimit {

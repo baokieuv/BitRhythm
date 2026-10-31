@@ -13,6 +13,8 @@ public interface PermissionRepository extends JpaRepository<Permission, Long>
 {
     Optional<Permission> findByIdAndIsDeleted(Long id, Integer isDeleted);
 
+    Optional<Permission> findByNameIgnoreCaseAndIsDeleted(String name, Integer isDeleted);
+
     boolean existsByNameIgnoreCaseAndIsDeleted(String name, Integer isDeleted);
 
     boolean existsByNameIgnoreCaseAndIdNotAndIsDeleted(String name, Long id, Integer isDeleted);
