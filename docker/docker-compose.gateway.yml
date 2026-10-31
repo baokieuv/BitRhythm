@@ -1,0 +1,28 @@
+# api gateway (public entry point, no database)
+services:
+  gateway:
+    build:
+      context: ..
+      dockerfile: backend/gateway/Dockerfile
+    image: bitrhythm/gateway:latest
+    container_name: bitrhythm_gateway
+    restart: unless-stopped
+    init: true
+    env_file:
+      - env/shared.env
+      - env/gateway.env
+    ports:
+      - "${GATEWAY_HOST_PORT:-8080}:8080"
+    networks:
+      - gateway_network   # edge network (attach frontend / reverse proxy here later)
+      - service_network   # reach auth/user/content by service name
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8080/health/liveness > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+networks:
+  gateway_network:
+    driver: bridge
