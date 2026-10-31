@@ -3,4 +3,4 @@ jdk:
 install:
   - sdk install maven 3.9.6
   - sdk use maven 3.9.6
-  - cd server/core && mvn clean install -DskipTests
+  - cd backend/core && mvn clean install -DskipTests
