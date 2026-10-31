@@ -2,8 +2,8 @@
 services:
   gateway:
     build:
-      context: ..
-      dockerfile: backend/gateway/Dockerfile
+      context: ../backend
+      dockerfile: gateway/Dockerfile
     image: bitrhythm/gateway:latest
     container_name: bitrhythm_gateway
     restart: unless-stopped

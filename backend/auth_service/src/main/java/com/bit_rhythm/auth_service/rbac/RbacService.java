@@ -58,7 +58,7 @@ public class RbacService {
 
     @Transactional
     public RoleResponse updateRole(Long roleId, UpdateRoleRequest request) {
-        if (roleRepository.existsByNameIgnoreCaseAndIdNotInAndIsDeleted(request.name(), roleId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
+        if (roleRepository.existsByNameIgnoreCaseAndIdNotAndIsDeleted(request.name(), roleId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
             throw new ApiException(CoreErrorCode.RESOURCE_ALREADY_EXISTS);
         }
 
@@ -118,7 +118,7 @@ public class RbacService {
 
     @Transactional
     public PermissionResponse updatePermission(Long permissionId, UpdatePermissionRequest request) {
-        if (permissionRepository.existsByNameIgnoreCaseAndIdNotInAndIsDeleted(request.name(), permissionId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
+        if (permissionRepository.existsByNameIgnoreCaseAndIdNotAndIsDeleted(request.name(), permissionId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
             throw new ApiException(CoreErrorCode.RESOURCE_ALREADY_EXISTS);
         }
 

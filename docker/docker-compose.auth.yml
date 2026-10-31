@@ -2,8 +2,8 @@
 services:
   auth-service:
     build:
-      context: ..
-      dockerfile: backend/auth_service/Dockerfile
+      context: ../backend
+      dockerfile: auth_service/Dockerfile
     image: bitrhythm/auth-service:latest
     container_name: bitrhythm_auth_service
     restart: unless-stopped

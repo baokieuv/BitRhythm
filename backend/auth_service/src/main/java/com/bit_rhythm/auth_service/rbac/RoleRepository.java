@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface RoleRepository extends JpaRepository<Role, Long> {
-    boolean existsByNameIgnoreCaseAndIdNotInAndIsDeleted(String name, Long id, Integer isDeleted);
+    boolean existsByNameIgnoreCaseAndIdNotAndIsDeleted(String name, Long id, Integer isDeleted);
 
     boolean existsByNameIgnoreCaseAndIsDeleted(String name, Integer isDeleted);
 

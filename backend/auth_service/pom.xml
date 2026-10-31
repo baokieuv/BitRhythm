@@ -26,6 +26,14 @@
 		<tag/>
 		<url/>
 	</scm>
+
+	<repositories>
+		<repository>
+			<id>jitpack.io</id>
+			<url>https://jitpack.io</url>
+		</repository>
+	</repositories>
+
 	<properties>
 		<java.version>21</java.version>
 		<core.version>0.0.1-SNAPSHOT</core.version>
@@ -37,10 +45,16 @@
 	<dependencies>
 		<!-- core already brings in: starter-web, starter-data-jpa, starter-validation,
 			 starter-actuator and the micrometer tracing libraries -->
+<!--		<dependency>-->
+<!--			<groupId>com.bit-rhythm</groupId>-->
+<!--			<artifactId>core</artifactId>-->
+<!--			<version>${core.version}</version>-->
+<!--		</dependency>-->
+
 		<dependency>
-			<groupId>com.bit-rhythm</groupId>
-			<artifactId>core</artifactId>
-			<version>${core.version}</version>
+			<groupId>com.github.baokieuv</groupId>
+			<artifactId>BitRhythm</artifactId>
+			<version>core-v1.0.1</version>
 		</dependency>
 
 		<!-- Security (includes BCryptPasswordEncoder) -->
@@ -79,8 +93,8 @@
 
 		<!-- Notification commands are consumed by notification_service. -->
 		<dependency>
-			<groupId>org.springframework.kafka</groupId>
-			<artifactId>spring-kafka</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-kafka</artifactId>
 		</dependency>
 
 		<!-- Utilities (optional in core, so it is not passed on: keep it here) -->

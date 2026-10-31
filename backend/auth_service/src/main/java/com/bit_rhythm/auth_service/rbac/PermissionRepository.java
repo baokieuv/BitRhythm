@@ -15,7 +15,7 @@ public interface PermissionRepository extends JpaRepository<Permission, Long>
 
     boolean existsByNameIgnoreCaseAndIsDeleted(String name, Integer isDeleted);
 
-    boolean existsByNameIgnoreCaseAndIdNotInAndIsDeleted(String name, Long id, Integer isDeleted);
+    boolean existsByNameIgnoreCaseAndIdNotAndIsDeleted(String name, Long id, Integer isDeleted);
 
     List<Permission> findAllByIdInAndIsDeleted(List<Long> ids, Integer isDeleted);
 
