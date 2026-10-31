@@ -1,0 +1,104 @@
+# Common infrastructure + shared networks. Always load this file first.
+name: bitrhythm
+
+services:
+  kafka:
+    image: apache/kafka:3.9.0
+    container_name: bitrhythm_kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      # PLAINTEXT = container-to-container (kafka:9092), EXTERNAL = from host (localhost:9094)
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:${KAFKA_HOST_PORT:-9094}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - "${KAFKA_HOST_PORT:-9094}:9094"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - common_network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list > /dev/null"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: bitrhythm_redis
+    restart: unless-stopped
+    env_file:
+      - env/redis.env
+    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes"]
+    ports:
+      - "${REDIS_HOST_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - common_network
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  minio:
+    image: cgr.dev/chainguard/minio:latest
+    container_name: bitrhythm_minio
+    restart: unless-stopped
+    env_file:
+      - env/minio.env
+    ports:
+      - "${MINIO_API_HOST_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_HOST_PORT:-9001}:9001"
+    volumes:
+      - ./minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - common_network
+
+  minio-setup:
+    image: amazon/aws-cli:2.17.13
+    container_name: bitrhythm_minio_setup
+    restart: "no"
+    env_file:
+      - env/minio.env
+    depends_on:
+      minio:
+        condition: service_started
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until aws --endpoint-url http://minio:9000 s3 ls; do
+          sleep 2
+        done
+        aws --endpoint-url http://minio:9000 s3 mb s3://music-streaming || true
+        aws --endpoint-url http://minio:9000 s3api put-bucket-policy \
+          --bucket music-streaming \
+          --policy '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":["s3:GetObject"],"Resource":["arn:aws:s3:::music-streaming/*"]}]}'
+    networks:
+      - common_network
+
+networks:
+  # kafka, redis, minio  <->  services that use them
+  common_network:
+    driver: bridge
+  # east-west HTTP traffic: gateway <-> auth/user/content services
+  service_network:
+    driver: bridge
+
+volumes:
+  kafka_data:
+  redis_data:
