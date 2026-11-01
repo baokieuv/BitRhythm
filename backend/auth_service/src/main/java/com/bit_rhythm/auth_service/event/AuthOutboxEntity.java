@@ -29,7 +29,7 @@ public class AuthOutboxEntity implements OutboxEvent {
     @Column(name = "event_type", nullable = false)
     private String eventType;
 
-    @Column(name = "payload", nullable = false)
+    @Column(name = "payload", nullable = false, columnDefinition = "LONGTEXT")
     private String payload;
 
     @Column(name = "is_processed", nullable = false)

@@ -124,8 +124,7 @@ public class AuthService {
             throw new AuthException(AuthCode.EMAIL_NOT_VERIFIED);
         }
 
-        String newPasswordHash = passwordEncoder.encode(request.newPassword());
-        userService.updatePassword(user, newPasswordHash);
+        userService.updatePassword(user, request.newPassword());
         refreshTokenService.revokeAll(userId);
     }
 

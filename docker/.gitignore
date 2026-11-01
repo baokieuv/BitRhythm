@@ -1,3 +1,4 @@
 .env
 env/*.env
 minio_data/
+redis_data/

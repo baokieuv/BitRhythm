@@ -4,8 +4,7 @@ import com.bit_rhythm.auth_service.rbac.dto.request.CreateRoleRequest;
 import com.bit_rhythm.auth_service.rbac.dto.request.UpdateRoleRequest;
 import com.bit_rhythm.core.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.beans.BeanUtils;
 
 import java.util.HashSet;
@@ -15,6 +14,8 @@ import java.util.Set;
 @Table(schema = "auth_service", name = "roles")
 @Setter
 @Getter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Role extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
