@@ -22,16 +22,16 @@ public class VerificationController {
     private final ResponseFactory responseFactory;
 
     @PostMapping("/verify-email")
-    public ResponseEntity<ApiResponseFormat<Object>> verify(
+    public ResponseEntity<ApiResponseFormat<Object>> verifyEmail(
             @Valid @RequestBody VerificationRequest request) {
-        verificationService.verify(request.token());
+        verificationService.verifyEmail(request.token());
         return responseFactory.response(AuthCode.SUCCESS, null);
     }
 
     @PostMapping("/resend-verification")
-    public ResponseEntity<ApiResponseFormat<Object>> resend(
+    public ResponseEntity<ApiResponseFormat<Object>> resendVerificationEmail(
             @Valid @RequestBody ResendVerificationRequest request) {
-        verificationService.resend(request.email());
+        verificationService.resendVerificationEmail(request.email());
         return responseFactory.response(AuthCode.SUCCESS, null);
     }
 }

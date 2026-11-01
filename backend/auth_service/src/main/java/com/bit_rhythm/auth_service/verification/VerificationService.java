@@ -7,6 +7,7 @@ import com.bit_rhythm.auth_service.common.util.CryptoService;
 import com.bit_rhythm.auth_service.common.util.TokenGenerator;
 import com.bit_rhythm.auth_service.config.AppProperties;
 import com.bit_rhythm.auth_service.event.UserEventPublisher;
+import com.bit_rhythm.auth_service.token.RefreshTokenService;
 import com.bit_rhythm.auth_service.user.User;
 import com.bit_rhythm.auth_service.user.UserRepository;
 import com.bit_rhythm.auth_service.user.UserService;
@@ -27,19 +28,22 @@ public class VerificationService {
     private final AppProperties appProperties;
     private final UserEventPublisher userEventPublisher;
     private final UserService userService;
+    private final RefreshTokenService refreshTokenService;
 
     /**
      * Creates and sends a token for the requested verification purpose.
      * Only the token hash is persisted; the raw token is sent to the user.
      */
     @Transactional
-    public void issue(User user, Purpose purpose) {
+    public void issueToken(User user, Purpose purpose) {
         if (user == null || user.getId() == null || purpose == null) {
             throw new IllegalArgumentException("User and verification purpose are required");
         }
 
-        String rawToken = TokenGenerator.generateRefreshToken();
         LocalDateTime now = LocalDateTime.now();
+        tokenRepository.invalidateActiveTokens(user.getId(), purpose.name(), now);
+
+        String rawToken = TokenGenerator.generateRefreshToken();
         OneTimeToken token = OneTimeToken.builder()
                 .userId(user.getId())
                 .type(purpose.name())
@@ -53,7 +57,7 @@ public class VerificationService {
     }
 
     @Transactional
-    public void verify(String rawToken) {
+    public void verifyEmail(String rawToken) {
         OneTimeToken token = consume(rawToken, Purpose.EMAIL_VERIFICATION);
         User user = userRepository.findById(token.getUserId())
                 .orElseThrow(() -> new AuthException(AuthCode.INVALID_REFRESH_TOKEN));
@@ -66,10 +70,14 @@ public class VerificationService {
     }
 
     @Transactional
-    public void resend(String email) {
+    public void resendVerificationEmail(String email) {
         userService.findOptionalByEmail(email)
                 .filter(user -> !Boolean.TRUE.equals(user.getEmailVerified()))
-                .ifPresent(user -> issue(user, Purpose.EMAIL_VERIFICATION));
+                .filter(user -> !UserStatus.DISABLED.name().equals(user.getStatus()))
+                .ifPresent(user -> {
+                    refreshTokenService.revokeAll(user.getId());
+                    issueToken(user, Purpose.EMAIL_VERIFICATION); // also invalidates old verification tokens
+                });
     }
 
     @Transactional
@@ -88,11 +96,14 @@ public class VerificationService {
                         cryptoService.hashToken(rawToken), purpose.name())
                 .orElseThrow(() -> new AuthException(AuthCode.INVALID_REFRESH_TOKEN));
 
-        if (token.getUsedAt() != null || !token.getExpiresAt().isAfter(LocalDateTime.now())) {
+        LocalDateTime now = LocalDateTime.now();
+        if (token.getUsedAt() != null || !token.getExpiresAt().isAfter(now)) {
             throw new AuthException(AuthCode.INVALID_REFRESH_TOKEN);
         }
 
-        token.setUsedAt(LocalDateTime.now());
-        return tokenRepository.save(token);
+        if (tokenRepository.markAsUsed(token.getId(), now) == 0) {
+            throw new AuthException(AuthCode.INVALID_CREDENTIALS);
+        }
+        return token;
     }
 }

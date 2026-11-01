@@ -28,7 +28,7 @@ public class PermissionController {
         return responseFactory.response(AuthCode.SUCCESS, rbacService.createPermission(request));
     }
 
-    @GetMapping
+    @PostMapping("/search")
     @PreAuthorize("hasAuthority('read:permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> getAllPermissions(
             @Valid @RequestBody PermissionSearchRequest request

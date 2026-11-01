@@ -8,6 +8,7 @@ import com.bit_rhythm.auth_service.auth.dto.request.ResetPasswordRequest;
 import com.bit_rhythm.auth_service.auth.dto.response.TokenResponse;
 import com.bit_rhythm.auth_service.auth.dto.response.UserResponse;
 import com.bit_rhythm.auth_service.common.enums.Purpose;
+import com.bit_rhythm.auth_service.common.enums.UserStatus;
 import com.bit_rhythm.auth_service.common.exception.AuthCode;
 import com.bit_rhythm.auth_service.common.exception.AuthException;
 import com.bit_rhythm.auth_service.config.JwtProperties;
@@ -15,24 +16,20 @@ import com.bit_rhythm.auth_service.token.JwtService;
 import com.bit_rhythm.auth_service.token.RefreshTokenService;
 import com.bit_rhythm.auth_service.user.User;
 import com.bit_rhythm.auth_service.user.UserService;
-import com.bit_rhythm.auth_service.common.enums.UserStatus;
 import com.bit_rhythm.auth_service.verification.VerificationService;
-import com.bit_rhythm.core.exception.ApiException;
-import com.bit_rhythm.core.exception.CoreErrorCode;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
-    private static final String DUMMY_PASSWORD_HASH =
-            "$2a$12$C6UzMDM.H6dfI/f/IKcEe.8Jq9g0Qv8mJf5w7fW8j5xQfM2cB5u";
+    private static final String TOKEN_TYPE = "Bearer";
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
@@ -42,59 +39,59 @@ public class AuthService {
     private final JwtProperties jwtProperties;
     private final VerificationService verificationService;
 
+    /** Valid hash generated with the real encoder, so unknown-user logins cost the same as real ones. */
+    private String dummyPasswordHash;
+
+    @PostConstruct
+    void initDummyPasswordHash() {
+        this.dummyPasswordHash = passwordEncoder.encode("dummy-password-for-timing-equalization");
+    }
+
+    // ------------------------------------------------------------------
+    // Registration
+    // ------------------------------------------------------------------
+
     @Transactional
     public UserResponse register(RegisterRequest request) {
         User user = userService.register(request);
-        verificationService.issue(user, Purpose.EMAIL_VERIFICATION);
+        verificationService.issueToken(user, Purpose.EMAIL_VERIFICATION);
         return new UserResponse(user);
     }
 
-    @Transactional
+    // ------------------------------------------------------------------
+    // Authentication / session
+    // ------------------------------------------------------------------
+
+    // noRollbackFor: failed-attempt counters must be persisted even though we throw.
+    @Transactional(noRollbackFor = AuthException.class)
     public TokenResponse login(LoginRequest request, String ipAddress, String userAgent) {
         User user = userService.findOptionalByIdentifier(request.identifier()).orElse(null);
         boolean passwordMatches = passwordEncoder.matches(
-                request.password(), user == null ? DUMMY_PASSWORD_HASH : user.getPasswordHash());
+                request.password(), user == null ? dummyPasswordHash : user.getPasswordHash());
+
         if (user == null || !passwordMatches) {
             if (user != null) {
                 loginAttemptService.recordFailure(user);
             }
             throw new AuthException(AuthCode.INVALID_CREDENTIALS);
         }
-        if (loginAttemptService.isLocked(user)) {
-            throw new AuthException(AuthCode.ACCOUNT_LOCKED);
-        }
-        if (UserStatus.DISABLED.name().equals(user.getStatus())) {
-            throw new AuthException(AuthCode.ACCOUNT_DISABLED);
-        }
-        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
-            throw new AuthException(AuthCode.EMAIL_NOT_VERIFIED);
-        }
 
+        ensureAccountCanAuthenticate(user);
         loginAttemptService.recordSuccess(user);
-        return createTokenResponse(user, ipAddress, userAgent);
+        return issueTokens(user, ipAddress, userAgent);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = AuthException.class)
     public TokenResponse refresh(RefreshTokenRequest request, String ipAddress, String userAgent) {
         RefreshTokenService.IssuedToken rotated =
                 refreshTokenService.rotate(request.refreshToken(), ipAddress, userAgent);
         User user = userService.findById(rotated.reference().userId());
-        if (UserStatus.DISABLED.name().equals(user.getStatus())
-                || !Boolean.TRUE.equals(user.getEmailVerified())) {
+
+        if (isDisabled(user) || !isEmailVerified(user)) {
             refreshTokenService.revokeAll(user.getId());
             throw new AuthException(AuthCode.INVALID_REFRESH_TOKEN);
         }
-        return new TokenResponse(
-                jwtService.generateAccessToken(user),
-                rotated.rawToken(),
-                "Bearer",
-                durationSeconds(jwtProperties.accessTokenTtl()));
-    }
-
-    @Transactional(readOnly = true)
-    public UserResponse me(Long userId) {
-        User user = userService.findById(userId);
-        return new UserResponse(user);
+        return toTokenResponse(user, rotated.rawToken());
     }
 
     @Transactional
@@ -103,57 +100,93 @@ public class AuthService {
     }
 
     @Transactional
-    public void logoutAllSessions(Long userId) {
+    public void logoutAll(Long userId) {
         refreshTokenService.revokeAll(userId);
     }
+
+    // ------------------------------------------------------------------
+    // Profile
+    // ------------------------------------------------------------------
+
+    @Transactional(readOnly = true)
+    public UserResponse getCurrentUser(Long userId) {
+        return new UserResponse(userService.findById(userId));
+    }
+
+    // ------------------------------------------------------------------
+    // Password management
+    // ------------------------------------------------------------------
 
     @Transactional
     public void changePassword(ChangePasswordRequest request, Long userId) {
         User user = userService.findById(userId);
-        if (user == null || !passwordEncoder.matches(request.oldPassword(), user.getPasswordHash())) {
-            throw new AuthException(AuthCode.INVALID_CREDENTIALS);
-        }
+        ensureAccountCanAuthenticate(user);
 
-        if (loginAttemptService.isLocked(user)) {
-            throw new AuthException(AuthCode.ACCOUNT_LOCKED);
-        }
-        if (UserStatus.DISABLED.name().equals(user.getStatus())) {
-            throw new AuthException(AuthCode.ACCOUNT_DISABLED);
-        }
-        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
-            throw new AuthException(AuthCode.EMAIL_NOT_VERIFIED);
+        if (!passwordEncoder.matches(request.oldPassword(), user.getPasswordHash())) {
+            throw new AuthException(AuthCode.INVALID_CREDENTIALS);
         }
 
         userService.updatePassword(user, request.newPassword());
         refreshTokenService.revokeAll(userId);
     }
 
+    /**
+     * Step 1 of password recovery: send a reset token by email.
+     * Silent when the account does not exist or is disabled (prevents account enumeration).
+     */
     @Transactional
-    public void resetPassword(String email) {
-        Optional<User> user = userService.findOptionalByIdentifier(email);
-        if (user.isEmpty()) {
-            throw new ApiException(CoreErrorCode.RESOURCE_NOT_FOUND);
-        }
-        verificationService.issue(user.get(), Purpose.PASSWORD_RESET);
+    public void requestPasswordReset(String email) {
+        userService.findOptionalByIdentifier(email)
+                .filter(user -> !isDisabled(user))
+                .ifPresent(user -> verificationService.issueToken(user, Purpose.PASSWORD_RESET));
     }
 
+    /** Step 2 of password recovery: consume the token and set the new password. */
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         User user = verificationService.consumePasswordReset(request.token());
-        if (UserStatus.DISABLED.name().equals(user.getStatus())) {
+        if (isDisabled(user)) {
             throw new AuthException(AuthCode.ACCOUNT_DISABLED);
         }
         userService.updatePassword(user, request.newPassword());
         refreshTokenService.revokeAll(user.getId());
     }
 
-    private TokenResponse createTokenResponse(User user, String ipAddress, String userAgent) {
+    // ------------------------------------------------------------------
+    // Helpers
+    // ------------------------------------------------------------------
+
+    private void ensureAccountCanAuthenticate(User user) {
+        if (loginAttemptService.isLocked(user)) {
+            throw new AuthException(AuthCode.ACCOUNT_LOCKED);
+        }
+        if (isDisabled(user)) {
+            throw new AuthException(AuthCode.ACCOUNT_DISABLED);
+        }
+        if (!isEmailVerified(user)) {
+            throw new AuthException(AuthCode.EMAIL_NOT_VERIFIED);
+        }
+    }
+
+    private boolean isDisabled(User user) {
+        return UserStatus.DISABLED.name().equals(user.getStatus());
+    }
+
+    private boolean isEmailVerified(User user) {
+        return Boolean.TRUE.equals(user.getEmailVerified());
+    }
+
+    private TokenResponse issueTokens(User user, String ipAddress, String userAgent) {
         RefreshTokenService.IssuedToken refresh =
                 refreshTokenService.issue(user, ipAddress, userAgent);
+        return toTokenResponse(user, refresh.rawToken());
+    }
+
+    private TokenResponse toTokenResponse(User user, String rawRefreshToken) {
         return new TokenResponse(
                 jwtService.generateAccessToken(user),
-                refresh.rawToken(),
-                "Bearer",
+                rawRefreshToken,
+                TOKEN_TYPE,
                 durationSeconds(jwtProperties.accessTokenTtl()));
     }
 

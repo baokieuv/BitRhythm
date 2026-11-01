@@ -27,7 +27,7 @@ public class RoleController {
         return responseFactory.response(AuthCode.SUCCESS, rbacService.createRole(request));
     }
 
-    @GetMapping
+    @PostMapping("/search")
     @PreAuthorize("hasAuthority('read:roles')")
     public ResponseEntity<ApiResponseFormat<Object>> getAllRoles(
             @Valid @RequestBody RoleSearchRequest request) {

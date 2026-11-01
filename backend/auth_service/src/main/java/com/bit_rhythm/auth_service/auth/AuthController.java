@@ -49,7 +49,7 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponseFormat<Object>> me(
             @AuthenticationPrincipal AuthUser user) {
-        return responseFactory.response(AuthCode.SUCCESS, authService.me(user.id()));
+        return responseFactory.response(AuthCode.SUCCESS, authService.getCurrentUser(user.id()));
     }
 
     @PostMapping("/change-password")
@@ -64,7 +64,7 @@ public class AuthController {
     @PostMapping("/request-password-reset")
     public ResponseEntity<ApiResponseFormat<Object>> requestPasswordReset(
             @Valid @RequestBody ForgotPasswordRequest request) {
-        authService.resetPassword(request.email());
+        authService.requestPasswordReset(request.email());
         return responseFactory.response(AuthCode.SUCCESS, null);
     }
 
@@ -86,7 +86,7 @@ public class AuthController {
     public ResponseEntity<ApiResponseFormat<Object>> logoutAll(
             @AuthenticationPrincipal AuthUser user
     ) {
-        authService.logoutAllSessions(user.id());
+        authService.logoutAll(user.id());
         return responseFactory.response(AuthCode.SUCCESS, null);
     }
 }
