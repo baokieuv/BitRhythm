@@ -1,5 +1,6 @@
 package com.bit_rhythm.auth_service.token;
 
+import com.bit_rhythm.auth_service.common.enums.RevokeReason;
 import com.bit_rhythm.auth_service.common.exception.AuthCode;
 import com.bit_rhythm.auth_service.common.exception.AuthException;
 import com.bit_rhythm.auth_service.common.util.CryptoService;
@@ -10,11 +11,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
 public class RefreshTokenService {
+
+    private static final int MAX_USER_AGENT_LENGTH = 512;
 
     private final RefreshTokenRepository refreshTokenRepository;
     private final CryptoService cryptoService;
@@ -22,28 +26,32 @@ public class RefreshTokenService {
 
     @Transactional
     public IssuedToken issue(User user, String ipAddress, String userAgent) {
-        return issue(user, TokenGenerator.generateFamilyId(), ipAddress, userAgent);
+        return issue(user.getId(), TokenGenerator.generateFamilyId(), ipAddress, userAgent);
     }
 
     @Transactional
-    public IssuedToken issue(User user, long familyId, String ipAddress, String userAgent) {
+    public IssuedToken issue(Long userId, long familyId, String ipAddress, String userAgent) {
         String rawToken = TokenGenerator.generateRefreshToken();
         LocalDateTime now = LocalDateTime.now();
         RefreshToken entity = RefreshToken.builder().
-                userId(user.getId()).
+                userId(userId).
                 familyId(familyId).
                 tokenHash(cryptoService.hashToken(rawToken)).
                 issuedAt(now).
                 expiresAt(now.plus(jwtProperties.refreshTokenTtl())).
                 ipAddress(ipAddress).
-                userAgent(truncate(userAgent, 512)).
+                userAgent(truncate(userAgent, MAX_USER_AGENT_LENGTH)).
                 build();
 
         refreshTokenRepository.save(entity);
         return new IssuedToken(rawToken, entity);
     }
 
-    @Transactional
+    /**
+     * Rotates a refresh token. noRollbackFor: the revocations done before throwing
+     * (reuse detection, expiry) must be committed, otherwise they are silently rolled back.
+     */
+    @Transactional(noRollbackFor = AuthException.class)
     public IssuedToken rotate(String rawToken, String ipAddress, String userAgent) {
         if (rawToken == null || rawToken.isBlank()) {
             throw new AuthException(AuthCode.INVALID_REFRESH_TOKEN);
@@ -53,62 +61,49 @@ public class RefreshTokenService {
                 .orElseThrow(() -> new AuthException(AuthCode.INVALID_REFRESH_TOKEN));
         LocalDateTime now = LocalDateTime.now();
         if (current.getRevokedAt() != null) {
-            refreshTokenRepository.revokeFamily(current.getFamilyId(), "REFRESH_TOKEN_REUSE");
+            refreshTokenRepository.revokeFamily(current.getFamilyId(), RevokeReason.TOKEN_REUSE.name(), now);
             throw new AuthException(AuthCode.INVALID_REFRESH_TOKEN);
         }
         if (!current.getExpiresAt().isAfter(now)) {
-            current.setRevokedAt(now);
-            current.setRevokedReason("EXPIRED");
-            refreshTokenRepository.save(current);
+            markRevoked(current, RevokeReason.EXPIRED, now);
             throw new AuthException(AuthCode.INVALID_REFRESH_TOKEN);
         }
 
-        current.setRevokedAt(now);
-        current.setRevokedReason("ROTATED");
-        refreshTokenRepository.save(current);
-        UserReference reference = new UserReference(current.getUserId(), current.getFamilyId());
-        IssuedToken replacement = issueReference(reference, ipAddress, userAgent);
-        return new IssuedToken(replacement.rawToken(), replacement.entity(), reference);
+        markRevoked(current, RevokeReason.ROTATED, now);
+        return issue(current.getUserId(), current.getFamilyId(), ipAddress, userAgent);
     }
 
     @Transactional
-    public void revoke(String rawToken, String reason) {
+    public void revoke(String rawToken, RevokeReason reason) {
         if (rawToken == null || rawToken.isBlank()) {
             return;
         }
         refreshTokenRepository.findByTokenHash(cryptoService.hashToken(rawToken)).ifPresent(token -> {
             if (token.getRevokedAt() == null) {
-                token.setRevokedAt(LocalDateTime.now());
-                token.setRevokedReason(reason);
-                refreshTokenRepository.save(token);
+                markRevoked(token, reason, LocalDateTime.now());
             }
         });
     }
 
     @Transactional
-    public void revokeAll(Long userId) {
-        refreshTokenRepository.revokeAllByUser(userId);
+    public void revokeAll(Long userId, RevokeReason reason) {
+        refreshTokenRepository.revokeAllByUser(userId, reason.name(), LocalDateTime.now());
     }
 
-    private IssuedToken issueReference(UserReference reference, String ipAddress, String userAgent) {
-        String rawToken = TokenGenerator.generateRefreshToken();
-        LocalDateTime now = LocalDateTime.now();
-        RefreshToken entity = RefreshToken.builder().
-                userId(reference.userId()).
-                familyId(reference.familyId()).
-                tokenHash(cryptoService.hashToken(rawToken)).
-                issuedAt(now).
-                expiresAt(now.plus(jwtProperties.refreshTokenTtl())).
-                ipAddress(ipAddress).
-                userAgent(truncate(userAgent, 512)).
-                build();
-
-        refreshTokenRepository.save(entity);
-        return new IssuedToken(rawToken, entity);
+    /** Deletes tokens that expired more than {@code retention} ago. */
+    @Transactional
+    public int purgeExpired(Duration retention) {
+        return refreshTokenRepository.deleteExpiredBefore(LocalDateTime.now().minus(retention));
     }
 
     private String truncate(String value, int maxLength) {
         return value == null ? null : value.substring(0, Math.min(value.length(), maxLength));
+    }
+
+    private void markRevoked(RefreshToken token, RevokeReason reason, LocalDateTime at) {
+        token.setRevokedAt(at);
+        token.setRevokedReason(reason.name());
+        refreshTokenRepository.save(token);
     }
 
     public record IssuedToken(String rawToken, RefreshToken entity, UserReference reference) {

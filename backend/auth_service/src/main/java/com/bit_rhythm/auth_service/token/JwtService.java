@@ -69,4 +69,14 @@ public class JwtService {
                 .parseSignedClaims(token)
                 .getPayload();
     }
+
+    public ServiceToken generateServiceToken(String clientId, List<String> scopes, List<String> audiences) {
+        return null;
+    }
+
+    public record ServiceToken(String value, Instant issuedAt, Instant expiresAt) {
+        public long expiresInSeconds() {
+            return Math.max(1, expiresAt.getEpochSecond() - issuedAt.getEpochSecond());
+        }
+    }
 }

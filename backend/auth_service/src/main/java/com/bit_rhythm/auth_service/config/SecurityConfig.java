@@ -63,7 +63,9 @@ public class SecurityConfig {
                                 "/auth/reset-password",
                                 "/auth/login",
                                 "/auth/refresh",
-                                "/auth/logout").permitAll()
+                                "/auth/logout",
+                                "/token",
+                                "/token/introspect").permitAll()
                         // /internal/** is protected by the X-Internal-Api-Key header (checked in the controller)
                         .requestMatchers("/internal/**", "/health/**", "/error").permitAll()
                         .anyRequest().authenticated())

@@ -8,7 +8,9 @@ import java.util.Optional;
 @Repository
 public interface ServiceClientRepository extends JpaRepository<ServiceClient, Long> {
 
-    Optional<ServiceClient> findByClientIdAndIsActiveTrue(String clientId);
+    Optional<ServiceClient> findByClientIdAndIsActiveTrueAndIsDeleted(String clientId, Integer isDeleted);
+
+    Optional<ServiceClient> findByClientIdAndIsDeleted(String clientId, Integer isDeleted);
 
     boolean existsByClientId(String clientId);
 }

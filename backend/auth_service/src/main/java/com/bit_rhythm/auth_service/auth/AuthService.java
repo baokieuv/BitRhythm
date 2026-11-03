@@ -8,6 +8,7 @@ import com.bit_rhythm.auth_service.auth.dto.request.ResetPasswordRequest;
 import com.bit_rhythm.auth_service.auth.dto.response.TokenResponse;
 import com.bit_rhythm.auth_service.auth.dto.response.UserResponse;
 import com.bit_rhythm.auth_service.common.enums.Purpose;
+import com.bit_rhythm.auth_service.common.enums.RevokeReason;
 import com.bit_rhythm.auth_service.common.enums.UserStatus;
 import com.bit_rhythm.auth_service.common.exception.AuthCode;
 import com.bit_rhythm.auth_service.common.exception.AuthException;
@@ -88,7 +89,7 @@ public class AuthService {
         User user = userService.findById(rotated.reference().userId());
 
         if (isDisabled(user) || !isEmailVerified(user)) {
-            refreshTokenService.revokeAll(user.getId());
+            refreshTokenService.revokeAll(user.getId(), RevokeReason.ACCOUNT_STATE_INVALID);
             throw new AuthException(AuthCode.INVALID_REFRESH_TOKEN);
         }
         return toTokenResponse(user, rotated.rawToken());
@@ -96,12 +97,12 @@ public class AuthService {
 
     @Transactional
     public void logout(RefreshTokenRequest request) {
-        refreshTokenService.revoke(request.refreshToken(), "LOGOUT");
+        refreshTokenService.revoke(request.refreshToken(), RevokeReason.LOGOUT);
     }
 
     @Transactional
     public void logoutAll(Long userId) {
-        refreshTokenService.revokeAll(userId);
+        refreshTokenService.revokeAll(userId, RevokeReason.LOGOUT_ALL);
     }
 
     // ------------------------------------------------------------------
@@ -127,7 +128,7 @@ public class AuthService {
         }
 
         userService.updatePassword(user, request.newPassword());
-        refreshTokenService.revokeAll(userId);
+        refreshTokenService.revokeAll(userId, RevokeReason.PASSWORD_CHANGED);
     }
 
     /**
@@ -149,7 +150,7 @@ public class AuthService {
             throw new AuthException(AuthCode.ACCOUNT_DISABLED);
         }
         userService.updatePassword(user, request.newPassword());
-        refreshTokenService.revokeAll(user.getId());
+        refreshTokenService.revokeAll(user.getId(), RevokeReason.PASSWORD_CHANGED);
     }
 
     // ------------------------------------------------------------------

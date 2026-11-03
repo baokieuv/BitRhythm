@@ -27,8 +27,13 @@ public class ServiceClient extends BaseEntity {
     @Column(name = "client_secret_hash", nullable = false)
     private String clientSecretHash;
 
+    /** Space-separated scopes this client may request, e.g. "orders:read payments:write". */
     @Column(name = "scopes")
-    private String scopes; // e.g., "read:orders write:payments"
+    private String scopes;
+
+    /** Space-separated services this client may call (becomes the token "aud"), e.g. "orders-service payments-service". */
+    @Column(name = "allowed_audiences")
+    private String allowedAudiences;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;

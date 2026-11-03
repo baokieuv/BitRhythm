@@ -20,10 +20,10 @@ public class AdminUserController {
     private final AdminService adminService;
     private final ResponseFactory responseFactory;
 
-    @GetMapping
+    @PostMapping("/search")
     @PreAuthorize("hasAuthority('read:users')")
     public ResponseEntity<ApiResponseFormat<Object>> searchUsers(
-            @Valid UserSearchRequest request) {
+            @Valid @RequestBody UserSearchRequest request) {
         return responseFactory.response(AuthCode.SUCCESS, adminService.searchUsers(request));
     }
 
