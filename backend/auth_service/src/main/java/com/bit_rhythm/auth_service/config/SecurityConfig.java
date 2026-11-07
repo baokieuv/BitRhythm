@@ -28,8 +28,13 @@ import java.time.Instant;
 
 @Configuration
 @EnableMethodSecurity
-@EnableConfigurationProperties({JwtProperties.class, AppProperties.class})
+@EnableConfigurationProperties({JwtProperties.class, AppProperties.class, TokenSigningProperties.class})
 public class SecurityConfig {
+
+    /** Authority added by JwtAuthFilter to user (access) tokens. */
+    private static final String USER_TOKEN = "TOKEN_ACCESS";
+    /** Authority added by JwtAuthFilter to service (machine-to-machine) tokens. */
+    private static final String SERVICE_TOKEN = "TOKEN_SERVICE";
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -54,7 +59,9 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Rules are evaluated top to bottom, the first match wins.
                 .authorizeHttpRequests(auth -> auth
+                        // --- public ---------------------------------------------------------
                         .requestMatchers(HttpMethod.POST,
                                 "/auth/register",
                                 "/auth/verify-email",
@@ -64,11 +71,21 @@ public class SecurityConfig {
                                 "/auth/login",
                                 "/auth/refresh",
                                 "/auth/logout",
+                                // OAuth2 endpoints authenticate the calling service themselves
+                                // (client_id/client_secret), so they must not require a bearer token.
                                 "/token",
                                 "/token/introspect").permitAll()
-                        // /internal/** is protected by the X-Internal-Api-Key header (checked in the controller)
-                        .requestMatchers("/internal/**", "/health/**", "/error").permitAll()
-                        .anyRequest().authenticated())
+                        .requestMatchers(HttpMethod.GET, "/.well-known/jwks.json").permitAll()
+                        .requestMatchers("/health/**", "/error").permitAll()
+                        // --- user tokens only -------------------------------------------------
+                        .requestMatchers("/auth/me", "/auth/change-password", "/auth/logout-all")
+                        .hasAuthority(USER_TOKEN)
+                        // --- service tokens only ----------------------------------------------
+                        // Add fine-grained checks per endpoint, e.g. @PreAuthorize("hasAuthority('SCOPE_users:read')").
+                        .requestMatchers("/internal/**").hasAuthority(SERVICE_TOKEN)
+                        // --- everything else (RBAC/admin APIs, ...): user tokens only ---------
+                        // Safe default: a service token cannot reach an endpoint unless it is listed above.
+                        .anyRequest().hasAuthority(USER_TOKEN))
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((req, res, e) ->
                                 writeError(req, res, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required"))

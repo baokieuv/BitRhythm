@@ -7,7 +7,6 @@ import java.time.Duration;
 /** Bound from the "jwt:" block of application.yml. Registered in SecurityConfig (@EnableConfigurationProperties). */
 @ConfigurationProperties(prefix = "jwt")
 public record JwtProperties(
-        String secret,              // base64, at least 32 bytes
         Duration accessTokenTtl,
         Duration refreshTokenTtl) {
 }

@@ -17,6 +17,7 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: update          # simple start: tables are created from entities (switch to Flyway later)
+      # also adds the new service_clients.allowed_audiences column automatically
     properties:
       hibernate:
         jdbc:
@@ -51,20 +52,43 @@ server:
   forward-headers-strategy: framework
 
 jwt:
-  secret: ${JWT_SECRET}         # required, base64, >= 32 bytes. Generate: openssl rand -base64 48
   access-token-ttl: 15m
   refresh-token-ttl: 14d
+
+# Token signing (RS256) and service-to-service tokens
+auth:
+  token:
+    # Must be identical to service-auth.resource.issuer in every service that validates our tokens.
+    issuer: ${TOKEN_ISSUER:http://auth-service}
+    user-audience: bit-rhythm-api   # "aud" of user access tokens
+    self-audience: auth-service     # "aud" a service token must carry to call THIS service
+    service-token-ttl: 5m
+    clock-skew: 30s
+    key-id: ${JWT_KEY_ID:auth-key-1}
+    # PKCS#8 / X.509 PEM. Leave empty ONLY for local dev: an ephemeral key pair is generated at startup
+    # (tokens stop working after a restart). Generate a real pair:
+    #   openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out private.pem
+    #   openssl rsa -pubout -in private.pem -out public.pem
+    private-key: ${JWT_PRIVATE_KEY:}
+    public-key: ${JWT_PUBLIC_KEY:}
+    # While rotating keys, keep the old public key here until every token signed with it has expired:
+    # retired-keys:
+    #   - key-id: auth-key-0
+    #     public-key: ${JWT_PUBLIC_KEY_OLD}
+    cleanup-cron: "0 0 3 * * *"     # purge expired refresh tokens (needs @EnableScheduling)
 
 app:
   verification-token-ttl: 24h
   verify-email-url: ${VERIFY_EMAIL_URL:http://localhost:3000/verify-email}   # frontend page that POSTs the token to /auth/verify-email
   reset-password-url: ${RESET_PASSWORD_URL:http://localhost:3000/reset-password}
-  internal-api-key: ${INTERNAL_API_KEY}   # required. Other services send it in the X-Internal-Api-Key header
+  # Obsolete once /internal/** is protected by service tokens (TOKEN_SERVICE): remove this line together
+  # with AppProperties.internalApiKey and the header check in the internal controller.
+  internal-api-key: ${INTERNAL_API_KEY}
   notification-topic: ${NOTIFICATION_TOPIC:notification.events}
   admin:
     email: ${ADMIN_EMAIL:bitrhythm@gmail.com}
     username: ${ADMIN_USERNAME:bitrhythm admin}
-    password: ${ADMIN_PASSWORD:123456}
+    password: ${ADMIN_PASSWORD:123456}   # dev default only: set ADMIN_PASSWORD in every real environment
 
   # Rate limiting (Bucket4j, in memory, per client IP). "capacity" POST requests allowed per "period".
   rate-limit:
@@ -76,6 +100,10 @@ app:
       - { path: /auth/request-password-reset, capacity: 5, period: 15m }
       - { path: /auth/verify-email,        capacity: 10, period: 1m }
       - { path: /auth/refresh,             capacity: 30, period: 1m }
+      # Service-to-service endpoints. Callers cache tokens (5m TTL), so legitimate traffic is low;
+      # keep these generous enough for several services sharing one gateway/NAT IP.
+      - { path: /token,                    capacity: 60, period: 1m }
+      - { path: /token/introspect,         capacity: 120, period: 1m }
 
 management:
   endpoints:

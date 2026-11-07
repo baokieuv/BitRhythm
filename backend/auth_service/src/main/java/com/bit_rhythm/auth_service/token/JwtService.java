@@ -6,7 +6,12 @@ import com.bit_rhythm.auth_service.config.TokenSigningProperties;
 import com.bit_rhythm.auth_service.rbac.Permission;
 import com.bit_rhythm.auth_service.rbac.Role;
 import com.bit_rhythm.auth_service.user.User;
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.ProtectedHeader;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
@@ -17,8 +22,12 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Issues and parses access tokens. HMAC-signed (HS256 family) with the single secret from jwt.secret.
- * Claims: sub = user id, email, roles, iat, exp.
+ * The single place that signs and parses tokens (RS256, key id in the header).
+ *
+ * <ul>
+ *   <li>access token (user): sub = user id, aud = user-audience, token_type = access</li>
+ *   <li>service token (machine): sub = client_id, aud = target service(s), scope, token_type = service</li>
+ * </ul>
  */
 @Service
 public class JwtService {
@@ -40,6 +49,8 @@ public class JwtService {
                 .clockSkewSeconds(signingProperties.clockSkew().toSeconds())
                 .build();
     }
+
+    // issuing
 
     public String generateAccessToken(User user) {
         Instant now = Instant.now();
@@ -91,6 +102,8 @@ public class JwtService {
         return new ServiceToken(token, now, expiresAt);
     }
 
+    // parsing
+
     /**
      * Verifies signature, issuer and expiry only. Used by introspection, which accepts any token type.
      * Throws JwtException (or IllegalArgumentException for a blank token) when invalid.
@@ -99,20 +112,24 @@ public class JwtService {
         return parser.parseSignedClaims(token).getPayload();
     }
 
-
-    /** Parses a USER access token: also requires token_type = access and the user audience. */
-    public Claims parse(String token) {
-        Claims claims = verify(token);
+    /** For callers that already ran {@link #verify(String)} and looked at token_type. Throws JwtException. */
+    public void assertAccessToken(Claims claims) {
         requireTokenType(claims, TokenClaims.TYPE_ACCESS);
         requireAudience(claims, signingProperties.userAudience());
-        return claims;
     }
 
-    /** Parses a SERVICE token: also requires token_type = service. Audience is checked by the receiving service. */
-    public Claims parseServiceToken(String token) {
-        Claims claims = verify(token);
+    /** For callers that already ran {@link #verify(String)} and looked at token_type. Throws JwtException. */
+    public void assertServiceToken(Claims claims) {
         requireTokenType(claims, TokenClaims.TYPE_SERVICE);
-        return claims;
+        requireAudience(claims, signingProperties.selfAudience());
+    }
+
+    // internals
+
+    private Key locateVerificationKey(Header header) {
+        String keyId = header instanceof ProtectedHeader protectedHeader ? protectedHeader.getKeyId() : null;
+        return signingKeys.findVerificationKey(keyId)
+                .orElseThrow(() -> new JwtException("Unknown signing key id"));
     }
 
     private void requireTokenType(Claims claims, String expected) {
@@ -125,12 +142,6 @@ public class JwtService {
         if (claims.getAudience() == null || !claims.getAudience().contains(expected)) {
             throw new JwtException("Unexpected token audience");
         }
-    }
-
-    private Key locateVerificationKey(Header header) {
-        String keyId = header instanceof ProtectedHeader protectedHeader ? protectedHeader.getKeyId() : null;
-        return signingKeys.findVerificationKey(keyId)
-                .orElseThrow(() -> new JwtException("Unknown signing key id"));
     }
 
     public record ServiceToken(String value, Instant issuedAt, Instant expiresAt) {
