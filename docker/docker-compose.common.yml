@@ -1,5 +1,4 @@
 # Common infrastructure + shared networks. Always load this file first.
-name: bitrhythm
 
 services:
   kafka:

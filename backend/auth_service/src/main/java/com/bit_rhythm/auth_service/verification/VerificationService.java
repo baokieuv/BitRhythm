@@ -1,6 +1,7 @@
 package com.bit_rhythm.auth_service.verification;
 
 import com.bit_rhythm.auth_service.common.enums.Purpose;
+import com.bit_rhythm.auth_service.common.enums.RevokeReason;
 import com.bit_rhythm.auth_service.common.exception.AuthCode;
 import com.bit_rhythm.auth_service.common.exception.AuthException;
 import com.bit_rhythm.auth_service.common.util.CryptoService;
@@ -75,7 +76,7 @@ public class VerificationService {
                 .filter(user -> !Boolean.TRUE.equals(user.getEmailVerified()))
                 .filter(user -> !UserStatus.DISABLED.name().equals(user.getStatus()))
                 .ifPresent(user -> {
-                    refreshTokenService.revokeAll(user.getId());
+                    refreshTokenService.revokeAll(user.getId(), RevokeReason.ROTATED);
                     issueToken(user, Purpose.EMAIL_VERIFICATION); // also invalidates old verification tokens
                 });
     }

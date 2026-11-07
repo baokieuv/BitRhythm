@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/token/introspect")
+@RequestMapping("/api/token/introspect")
 public class IntrospectionController {
 
     private final ServiceClientAuthenticator clientAuthenticator;

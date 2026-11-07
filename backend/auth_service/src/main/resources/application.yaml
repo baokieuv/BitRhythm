@@ -81,9 +81,6 @@ app:
   verification-token-ttl: 24h
   verify-email-url: ${VERIFY_EMAIL_URL:http://localhost:3000/verify-email}   # frontend page that POSTs the token to /auth/verify-email
   reset-password-url: ${RESET_PASSWORD_URL:http://localhost:3000/reset-password}
-  # Obsolete once /internal/** is protected by service tokens (TOKEN_SERVICE): remove this line together
-  # with AppProperties.internalApiKey and the header check in the internal controller.
-  internal-api-key: ${INTERNAL_API_KEY}
   notification-topic: ${NOTIFICATION_TOPIC:notification.events}
   admin:
     email: ${ADMIN_EMAIL:bitrhythm@gmail.com}

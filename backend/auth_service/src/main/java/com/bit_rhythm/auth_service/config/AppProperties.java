@@ -10,7 +10,6 @@ public record AppProperties(
         Duration verificationTokenTtl,
         String verifyEmailUrl,
         String resetPasswordUrl,
-        String internalApiKey,
         String notificationTopic,
         Admin admin,
         RateLimit rateLimit

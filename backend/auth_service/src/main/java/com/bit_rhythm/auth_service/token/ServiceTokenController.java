@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/token")
+@RequestMapping("/api/token")
 public class ServiceTokenController {
 
     private static final String CLIENT_CREDENTIALS = "client_credentials";

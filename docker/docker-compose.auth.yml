@@ -12,6 +12,11 @@ services:
       - env/shared.env
       - env/redis.env
       - env/auth.env
+    environment:
+      # Addresses inside the compose network. Set here (not only in env files) so the stack works
+      # even if shared.env still says localhost.
+      REDIS_HOST: redis
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
       - "${AUTH_SERVICE_HOST_PORT:-8081}:8081"
     depends_on:
@@ -23,14 +28,14 @@ services:
         condition: service_healthy
     networks:
       - auth_network      # private: auth-service <-> auth-database
-      - service_network   # gateway / other services call auth over HTTP
+      - service_network   # gateway / other services call auth over HTTP (token, introspect, JWKS)
       - common_network    # kafka, redis
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8081/health/ready > /dev/null || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 60s
 
   auth-database:
     image: mariadb:11.4

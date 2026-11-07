@@ -34,7 +34,8 @@ spring:
               predicates:
                 - Path=/api/auth/**
               filters:
-                - StripPrefix=2
+                # auth-service maps its controllers under /auth: /api/auth/login -> /auth/login (strip only "api")
+                - StripPrefix=1
                 - RemoveRequestHeader=X-Internal-Api-Key
                 - AddRequestHeader=X-Internal-Api-Key, ${INTERNAL_API_KEY}
                 - name: Retry
@@ -113,14 +114,16 @@ gateway:
     roles-claim: ${JWT_ROLES_CLAIM:roles}
     role-prefix: ${JWT_ROLE_PREFIX:ROLE_}
     admin-role: ${GATEWAY_ADMIN_ROLE:ADMIN}
-    # ASSUMPTION: adjust to the endpoints auth-service really exposes without a token.
+    # Same list as auth-service's SecurityConfig permitAll. /token, /token/introspect and the JWKS are
+    # service-to-service endpoints: there is no route for them, so they are not reachable from outside.
     public-endpoints:
-      - POST /api/auth/login
       - POST /api/auth/register
+      - POST /api/auth/login
       - POST /api/auth/refresh
-      - GET /api/auth/verify-email
+      - POST /api/auth/logout
       - POST /api/auth/verify-email
-      - POST /api/auth/forgot-password
+      - POST /api/auth/resend-verification
+      - POST /api/auth/request-password-reset
       - POST /api/auth/reset-password
   rate-limit:
     enabled: ${GATEWAY_RATE_LIMIT_ENABLED:true}
@@ -139,11 +142,17 @@ gateway:
         capacity: 5
         period: 1m
       - id: auth-recovery
-        path: /api/auth/forgot-password
+        path: /api/auth/request-password-reset
         methods: POST
         key: IP
         capacity: 5
         period: 1m
+      - id: auth-resend-verification
+        path: /api/auth/resend-verification
+        methods: POST
+        key: IP
+        capacity: 5
+        period: 15m
       - id: auth-other
         path: /api/auth/**
         key: USER

@@ -1,0 +1,6 @@
+name: bitrhythm
+
+include:
+  - docker-compose.common.yml
+  - docker-compose.auth.yml
+  - docker-compose.gateway.yml
