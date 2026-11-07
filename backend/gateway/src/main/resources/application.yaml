@@ -46,9 +46,7 @@ spring:
                       firstBackoff: 100ms
                       maxBackoff: 1s
                       factor: 2
-                - name: CircuitBreaker
-                  args:
-                    name: auth-service
+                - CircuitBreaker=auth-service
             - id: user-service
               uri: ${USER_SERVICE_URL:http://localhost:8082}
               predicates:
@@ -66,9 +64,7 @@ spring:
                       firstBackoff: 100ms
                       maxBackoff: 1s
                       factor: 2
-                - name: CircuitBreaker
-                  args:
-                    name: user-service
+                - CircuitBreaker=user-service
             - id: content-service
               uri: ${CONTENT_SERVICE_URL:http://localhost:8083}
               predicates:
@@ -86,9 +82,7 @@ spring:
                       firstBackoff: 100ms
                       maxBackoff: 1s
                       factor: 2
-                - name: CircuitBreaker
-                  args:
-                    name: content-service
+                - CircuitBreaker=content-service
 
 server:
   port: ${GATEWAY_PORT:8080}
