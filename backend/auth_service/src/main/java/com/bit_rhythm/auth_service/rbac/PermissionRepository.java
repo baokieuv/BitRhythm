@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface PermissionRepository extends JpaRepository<Permission, Long>
 {
@@ -20,6 +21,8 @@ public interface PermissionRepository extends JpaRepository<Permission, Long>
     boolean existsByNameIgnoreCaseAndIdNotAndIsDeleted(String name, Long id, Integer isDeleted);
 
     List<Permission> findAllByIdInAndIsDeleted(List<Long> ids, Integer isDeleted);
+
+    Set<Permission> findAllByNameInIgnoreCaseAndIsDeleted(List<String> names, Integer isDeleted);
 
     @Query("SELECT p FROM Permission p WHERE " +
             "(:name IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +

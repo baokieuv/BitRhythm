@@ -1,19 +1,20 @@
 package com.bit_rhythm.auth_service.token;
 
+import com.bit_rhythm.auth_service.rbac.Permission;
 import com.bit_rhythm.core.entity.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(schema = "auth_service", name = "service_clients")
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ServiceClient extends BaseEntity {
 
     @Id
@@ -28,8 +29,14 @@ public class ServiceClient extends BaseEntity {
     private String clientSecretHash;
 
     /** Space-separated scopes this client may request, e.g. "orders:read payments:write". */
-    @Column(name = "scopes")
-    private String scopes;
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            schema = "auth_service",
+            name = "service_client_permissions",
+            joinColumns = @JoinColumn(name = "service_client_id"),
+            inverseJoinColumns = @JoinColumn(name = "permission_id")
+    )
+    private Set<Permission> scopes = new HashSet<>();
 
     /** Space-separated services this client may call (becomes the token "aud"), e.g. "orders-service payments-service". */
     @Column(name = "allowed_audiences")

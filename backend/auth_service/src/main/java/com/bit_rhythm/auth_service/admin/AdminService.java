@@ -1,9 +1,10 @@
 package com.bit_rhythm.auth_service.admin;
 
-import com.bit_rhythm.auth_service.admin.dto.AdminUserResponse;
-import com.bit_rhythm.auth_service.admin.dto.UpdateUserRolesRequest;
-import com.bit_rhythm.auth_service.admin.dto.UpdateUserStatusRequest;
-import com.bit_rhythm.auth_service.admin.dto.UserSearchRequest;
+import com.bit_rhythm.auth_service.admin.dto.response.AdminUserResponse;
+import com.bit_rhythm.auth_service.admin.dto.request.UpdateUserRolesRequest;
+import com.bit_rhythm.auth_service.admin.dto.request.UpdateUserStatusRequest;
+import com.bit_rhythm.auth_service.admin.dto.request.UserSearchRequest;
+import com.bit_rhythm.auth_service.common.enums.RevokeReason;
 import com.bit_rhythm.auth_service.rbac.RoleRepository;
 import com.bit_rhythm.auth_service.token.RefreshTokenService;
 import com.bit_rhythm.auth_service.user.User;
@@ -56,7 +57,7 @@ public class AdminService {
         }
         User saved = userRepository.save(user);
         if (status == UserStatus.DISABLED || status == UserStatus.LOCKED) {
-            refreshTokenService.revokeAll(userId);
+            refreshTokenService.revokeAll(userId, RevokeReason.ROTATED);
         }
         return new AdminUserResponse(saved);
     }
@@ -80,7 +81,7 @@ public class AdminService {
         }
         user.setRoles(new HashSet<>(roles));
         User saved = userRepository.save(user);
-        refreshTokenService.revokeAll(userId);
+        refreshTokenService.revokeAll(userId, RevokeReason.ROTATED);
         return new AdminUserResponse(saved);
     }
 
@@ -90,13 +91,13 @@ public class AdminService {
         user.setIsDeleted(CommonEnums.DeletedStatus.DELETED.getCode());
         user.setStatus(UserStatus.DISABLED.name());
         userRepository.save(user);
-        refreshTokenService.revokeAll(userId);
+        refreshTokenService.revokeAll(userId, RevokeReason.ROTATED);
     }
 
     @Transactional
     public void revokeSessions(Long userId) {
         findUser(userId);
-        refreshTokenService.revokeAll(userId);
+        refreshTokenService.revokeAll(userId, RevokeReason.ROTATED);
     }
 
     private User findUser(Long userId) {

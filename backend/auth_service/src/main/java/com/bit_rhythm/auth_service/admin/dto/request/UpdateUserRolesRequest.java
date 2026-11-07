@@ -1,4 +1,4 @@
-package com.bit_rhythm.auth_service.admin.dto;
+package com.bit_rhythm.auth_service.admin.dto.request;
 
 import jakarta.validation.constraints.NotEmpty;
 

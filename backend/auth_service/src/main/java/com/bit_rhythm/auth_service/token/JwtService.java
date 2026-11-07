@@ -1,17 +1,17 @@
 package com.bit_rhythm.auth_service.token;
 
+import com.bit_rhythm.auth_service.common.util.ScopeUtils;
 import com.bit_rhythm.auth_service.config.JwtProperties;
+import com.bit_rhythm.auth_service.config.TokenSigningProperties;
 import com.bit_rhythm.auth_service.rbac.Permission;
 import com.bit_rhythm.auth_service.rbac.Role;
 import com.bit_rhythm.auth_service.user.User;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.*;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.SecretKey;
+import java.security.Key;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -23,13 +23,22 @@ import java.util.UUID;
 @Service
 public class JwtService {
 
-    private final SecretKey key;
-    private final JwtProperties properties;
+    private final SigningKeyService signingKeys;
+    private final JwtProperties jwtProperties;
+    private final TokenSigningProperties signingProperties;
+    private final JwtParser parser;
 
-    public JwtService(JwtProperties properties) {
-        this.properties = properties;
-        // Throws a clear WeakKeyException at startup if the secret is shorter than 256 bits.
-        this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(properties.secret()));
+    public JwtService(SigningKeyService signingKeys,
+                      JwtProperties jwtProperties,
+                      TokenSigningProperties signingProperties) {
+        this.signingKeys = signingKeys;
+        this.jwtProperties = jwtProperties;
+        this.signingProperties = signingProperties;
+        this.parser = Jwts.parser()
+                .keyLocator(this::locateVerificationKey)
+                .requireIssuer(signingProperties.issuer())
+                .clockSkewSeconds(signingProperties.clockSkew().toSeconds())
+                .build();
     }
 
     public String generateAccessToken(User user) {
@@ -46,32 +55,82 @@ public class JwtService {
                 .toList();
 
         return Jwts.builder()
+                .header().keyId(signingKeys.getActiveKeyId()).and()
+                .issuer(signingProperties.issuer())
                 .subject(user.getId().toString())
-                .claim("email", user.getEmail())
-                .claim("roles", roleNames)
-                .claim("permissions", permissionNames)
-                .claim("token_type", "access")
+                .audience().add(signingProperties.userAudience()).and()
+                .claim(TokenClaims.EMAIL, user.getEmail())
+                .claim(TokenClaims.ROLES, roleNames)
+                .claim(TokenClaims.PERMISSIONS, permissionNames)
+                .claim(TokenClaims.TOKEN_TYPE, TokenClaims.TYPE_ACCESS)
                 .id(UUID.randomUUID().toString())
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plus(properties.accessTokenTtl())))
-                .signWith(key)
+                .expiration(Date.from(now.plus(jwtProperties.accessTokenTtl())))
+                .signWith(signingKeys.getSigningKey(), Jwts.SIG.RS256)
                 .compact();
     }
 
-    /**
-     * Verifies signature and expiry and returns the claims.
-     * Throws a JwtException (or IllegalArgumentException for a blank token) if the token is not valid.
-     */
-    public Claims parse(String token) {
-        return Jwts.parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+    public ServiceToken generateServiceToken(String clientId, Collection<String> scopes, Collection<String> audiences) {
+        Instant now = Instant.now();
+        Instant expiresAt = now.plus(signingProperties.serviceTokenTtl());
+
+        String token = Jwts.builder()
+                .header().keyId(signingKeys.getActiveKeyId()).and()
+                .issuer(signingProperties.issuer())
+                .subject(clientId)
+                .audience().add(audiences).and()
+                .claim(TokenClaims.CLIENT_ID, clientId)
+                .claim(TokenClaims.SCOPE, ScopeUtils.join(scopes))
+                .claim(TokenClaims.TOKEN_TYPE, TokenClaims.TYPE_SERVICE)
+                .id(UUID.randomUUID().toString())
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(expiresAt))
+                .signWith(signingKeys.getSigningKey(), Jwts.SIG.RS256)
+                .compact();
+
+        return new ServiceToken(token, now, expiresAt);
     }
 
-    public ServiceToken generateServiceToken(String clientId, List<String> scopes, List<String> audiences) {
-        return null;
+    /**
+     * Verifies signature, issuer and expiry only. Used by introspection, which accepts any token type.
+     * Throws JwtException (or IllegalArgumentException for a blank token) when invalid.
+     */
+    public Claims verify(String token) {
+        return parser.parseSignedClaims(token).getPayload();
+    }
+
+
+    /** Parses a USER access token: also requires token_type = access and the user audience. */
+    public Claims parse(String token) {
+        Claims claims = verify(token);
+        requireTokenType(claims, TokenClaims.TYPE_ACCESS);
+        requireAudience(claims, signingProperties.userAudience());
+        return claims;
+    }
+
+    /** Parses a SERVICE token: also requires token_type = service. Audience is checked by the receiving service. */
+    public Claims parseServiceToken(String token) {
+        Claims claims = verify(token);
+        requireTokenType(claims, TokenClaims.TYPE_SERVICE);
+        return claims;
+    }
+
+    private void requireTokenType(Claims claims, String expected) {
+        if (!expected.equals(claims.get(TokenClaims.TOKEN_TYPE, String.class))) {
+            throw new JwtException("Unexpected token type");
+        }
+    }
+
+    private void requireAudience(Claims claims, String expected) {
+        if (claims.getAudience() == null || !claims.getAudience().contains(expected)) {
+            throw new JwtException("Unexpected token audience");
+        }
+    }
+
+    private Key locateVerificationKey(Header header) {
+        String keyId = header instanceof ProtectedHeader protectedHeader ? protectedHeader.getKeyId() : null;
+        return signingKeys.findVerificationKey(keyId)
+                .orElseThrow(() -> new JwtException("Unknown signing key id"));
     }
 
     public record ServiceToken(String value, Instant issuedAt, Instant expiresAt) {

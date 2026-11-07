@@ -1,4 +1,4 @@
-package com.bit_rhythm.auth_service.admin.dto;
+package com.bit_rhythm.auth_service.admin.dto.request;
 
 import com.bit_rhythm.core.dto.BaseSearchRequest;
 import lombok.Getter;

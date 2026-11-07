@@ -17,7 +17,9 @@ public enum AuthCode implements ApiResponseCode {
     EMAIL_NOT_VERIFIED(false, "AUTH0004", "auth.email_not_verified", HttpStatus.FORBIDDEN),
     INVALID_REFRESH_TOKEN(false, "AUTH0005", "auth.invalid_refresh_token", HttpStatus.UNAUTHORIZED),
     USER_ALREADY_EXISTS(false, "AUTH0006", "auth.user_already_exists", HttpStatus.CONFLICT),
-    VALIDATION_FAILED(false, "AUTH0007", "auth.validation_failed", HttpStatus.BAD_REQUEST);
+    VALIDATION_FAILED(false, "AUTH0007", "auth.validation_failed", HttpStatus.BAD_REQUEST),
+    CLIENT_ALREADY_EXISTS(false, "AUTH0008", "auth.client_already_exists", HttpStatus.CONFLICT)
+    ;
 
     private final boolean success;
     private final String code;

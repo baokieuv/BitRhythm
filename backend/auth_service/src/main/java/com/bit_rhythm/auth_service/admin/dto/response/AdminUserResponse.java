@@ -1,5 +1,6 @@
-package com.bit_rhythm.auth_service.admin.dto;
+package com.bit_rhythm.auth_service.admin.dto.response;
 
+import com.bit_rhythm.auth_service.rbac.Role;
 import com.bit_rhythm.auth_service.user.User;
 
 import java.time.LocalDateTime;
@@ -30,6 +31,6 @@ public record AdminUserResponse(
                 user.getLockedUntil(),
                 user.getPasswordChangedAt(),
                 user.getLastLoginAt(),
-                user.getRoles().stream().map(role -> role.getName()).sorted().toList());
+                user.getRoles().stream().map(Role::getName).sorted().toList());
     }
 }

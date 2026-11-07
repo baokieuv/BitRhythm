@@ -1,11 +1,7 @@
 package com.bit_rhythm.auth_service.token;
 
 import com.bit_rhythm.auth_service.common.exception.OAuth2Exception;
-import com.bit_rhythm.auth_service.token.dto.request.ServiceTokenRequest;
-import com.bit_rhythm.auth_service.token.dto.request.TokenIntrospectionRequest;
 import com.bit_rhythm.auth_service.token.dto.response.ServiceTokenResponse;
-import com.bit_rhythm.auth_service.token.dto.response.TokenIntrospectionResponse;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;

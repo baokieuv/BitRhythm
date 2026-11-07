@@ -1,8 +1,8 @@
 package com.bit_rhythm.auth_service.admin;
 
-import com.bit_rhythm.auth_service.admin.dto.UpdateUserRolesRequest;
-import com.bit_rhythm.auth_service.admin.dto.UpdateUserStatusRequest;
-import com.bit_rhythm.auth_service.admin.dto.UserSearchRequest;
+import com.bit_rhythm.auth_service.admin.dto.request.UpdateUserRolesRequest;
+import com.bit_rhythm.auth_service.admin.dto.request.UpdateUserStatusRequest;
+import com.bit_rhythm.auth_service.admin.dto.request.UserSearchRequest;
 import com.bit_rhythm.auth_service.common.exception.AuthCode;
 import com.bit_rhythm.core.dto.ApiResponseFormat;
 import com.bit_rhythm.core.utils.ResponseFactory;
