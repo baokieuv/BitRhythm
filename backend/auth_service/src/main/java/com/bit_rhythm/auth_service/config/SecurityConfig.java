@@ -63,22 +63,22 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // --- public ---------------------------------------------------------
                         .requestMatchers(HttpMethod.POST,
-                                "/auth/register",
-                                "/auth/verify-email",
-                                "/auth/resend-verification",
-                                "/auth/request-password-reset",
-                                "/auth/reset-password",
-                                "/auth/login",
-                                "/auth/refresh",
-                                "/auth/logout",
+                                "/api/auth/register",
+                                "/api/auth/verify-email",
+                                "/api/auth/resend-verification",
+                                "/api/auth/request-password-reset",
+                                "/api/auth/reset-password",
+                                "/api/auth/login",
+                                "/api/auth/refresh",
+                                "/api/auth/logout",
                                 // OAuth2 endpoints authenticate the calling service themselves
                                 // (client_id/client_secret), so they must not require a bearer token.
-                                "/token",
-                                "/token/introspect").permitAll()
+                                "/api/token",
+                                "/api/token/introspect").permitAll()
                         .requestMatchers(HttpMethod.GET, "/.well-known/jwks.json").permitAll()
                         .requestMatchers("/health/**", "/error").permitAll()
                         // --- user tokens only -------------------------------------------------
-                        .requestMatchers("/auth/me", "/auth/change-password", "/auth/logout-all")
+                        .requestMatchers("/api/auth/me", "/api/auth/change-password", "/api/auth/logout-all")
                         .hasAuthority(USER_TOKEN)
                         // --- service tokens only ----------------------------------------------
                         // Add fine-grained checks per endpoint, e.g. @PreAuthorize("hasAuthority('SCOPE_users:read')").
