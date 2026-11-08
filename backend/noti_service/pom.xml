@@ -32,12 +32,17 @@
 	</repositories>
 
 	<dependencies>
-		<!-- BitRhythm Shared Core -->
 		<dependency>
-			<groupId>com.github.baokieuv</groupId>
-			<artifactId>BitRhythm</artifactId>
-			<version>core-v1.0.1</version>
+			<groupId>com.bit-rhythm</groupId>
+			<artifactId>core</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
+		<!-- BitRhythm Shared Core -->
+<!--		<dependency>-->
+<!--			<groupId>com.github.baokieuv</groupId>-->
+<!--			<artifactId>BitRhythm</artifactId>-->
+<!--			<version>core-v1.0.1</version>-->
+<!--		</dependency>-->
 
 		<!-- Kafka Starter (Replaced legacy spring-kafka) -->
 		<dependency>

@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 @Getter
 @RequiredArgsConstructor
 public enum CoreErrorCode implements ApiResponseCode {
+    SUCCESS(true, "AVT0000", "success", HttpStatus.OK),
 
     // --- General & Server Errors ---
     INTERNAL_SERVER_ERROR(false, "AVT0001", "error.internal_server_error", HttpStatus.INTERNAL_SERVER_ERROR),
