@@ -1,9 +1,12 @@
 package com.bit_rhythm.notification_service.template;
 
+import com.bit_rhythm.core.common.CommonEnums;
 import com.bit_rhythm.notification_service.channel.Channel;
 import com.bit_rhythm.notification_service.channel.RenderedContent;
 import com.bit_rhythm.notification_service.common.exception.NotificationException;
 import com.bit_rhythm.notification_service.core.NotificationRequest;
+import com.bit_rhythm.notification_service.template.dto.request.NotificationTemplateRequest;
+import com.bit_rhythm.notification_service.template.dto.response.NotificationTemplateResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
@@ -13,11 +16,13 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.exceptions.TemplateInputException;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +33,36 @@ public class TemplateService {
     private final TemplateEngine templateEngine;
     private final TemplateRepository templateRepository;
     private final MessageSource messageSource;
+
+    public List<NotificationTemplateResponse> listTemplates() {
+        List<NotificationTemplate> templates = templateRepository.findAllByIsDeleted(CommonEnums.DeletedStatus.NOT_DELETED.getCode());
+        return templates.stream()
+                .map(NotificationTemplateResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    public NotificationTemplateResponse create(NotificationTemplateRequest request) {
+        NotificationTemplate template = new NotificationTemplate(request);
+        templateRepository.save(template);
+        return NotificationTemplateResponse.from(template);
+    }
+
+    public NotificationTemplateResponse update(Long templateId, NotificationTemplateRequest request) {
+        NotificationTemplate template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new NotificationException(HttpStatus.NOT_FOUND, "TEMPLATE_NOT_FOUND",
+                        "Notification template with ID " + templateId + " not found"));
+        template.update(request);
+        templateRepository.save(template);
+        return NotificationTemplateResponse.from(template);
+    }
+
+    public void delete(Long templateId) {
+        NotificationTemplate template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new NotificationException(HttpStatus.NOT_FOUND, "TEMPLATE_NOT_FOUND",
+                        "Notification template with ID " + templateId + " not found"));
+        template.setIsDeleted(CommonEnums.DeletedStatus.DELETED.getCode());
+        templateRepository.save(template);
+    }
 
     public RenderedContent render(NotificationRequest request, Channel channel) {
         Locale locale = resolveLocale(request.recipient().locale());
@@ -60,10 +95,10 @@ public class TemplateService {
 
         String html;
         try {
-            html = templateEngine.process("email/" + key + "_" + locale.getLanguage(), context);
+            html = templateEngine.process("templates/email/" + key + "_" + locale.getLanguage(), context);
         } catch (TemplateInputException ex) {
             try {
-                html = templateEngine.process("email/" + key + "_" + DEFAULT_LOCALE.getLanguage(), context);
+                html = templateEngine.process("templates/email/" + key + "_" + DEFAULT_LOCALE.getLanguage(), context);
             } catch (TemplateInputException missing) {
                 throw new NotificationException(HttpStatus.INTERNAL_SERVER_ERROR, "TEMPLATE_NOT_FOUND",
                         "No email template for " + key);

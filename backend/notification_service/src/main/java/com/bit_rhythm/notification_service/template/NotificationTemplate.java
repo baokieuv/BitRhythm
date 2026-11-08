@@ -1,7 +1,9 @@
 package com.bit_rhythm.notification_service.template;
 
+import com.bit_rhythm.core.entity.BaseEntity;
 import com.bit_rhythm.notification_service.channel.Channel;
 import com.bit_rhythm.notification_service.core.NotificationType;
+import com.bit_rhythm.notification_service.template.dto.request.NotificationTemplateRequest;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,6 +18,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 /** A template edited through the admin API. When none is active, the file in resources/templates is used. */
@@ -24,7 +27,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-public class NotificationTemplate {
+public class NotificationTemplate extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -52,12 +55,17 @@ public class NotificationTemplate {
     @Column(nullable = false)
     private boolean active = true;
 
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
     @PrePersist
     @PreUpdate
     void touch() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = Instant.now();
+    }
+
+    public NotificationTemplate(NotificationTemplateRequest request) {
+
+    }
+
+    public void update(NotificationTemplateRequest request) {
+
     }
 }

@@ -11,7 +11,6 @@ spring:
       maximum-pool-size: ${DB_POOL_MAX:10}
       minimum-idle: 2
       connection-timeout: 5000
-      max-lifetime: 1800000
 
   jpa:
     open-in-view: false
@@ -23,70 +22,96 @@ spring:
         jdbc:
           time_zone: UTC
 
-  mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:465}
-    username: ${MAIL_USERNAME:kieubao2k4@gmail.com}
-    password: ${MAIL_PASSWORD:zwac yohn qmho pdyr}
-    protocol: smtps
-    properties:
-      mail:
-        smtp:
-          auth: true
-          ssl:
-            enable: true
-          trust: ${MAIL_HOST:smtp.gmail.com}
-
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
-      properties:
-        "[spring.json.add.type.headers]": false
-        "[acks]": all
-        "[enable.idempotence]": true
-        "[delivery.timeout.ms]": 120000
-    consumer:
-      group-id: ${NOTI_KAFKA_GROUP_ID:notification-group}
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
-      properties:
-        spring.json.trusted.packages: "*"
-
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/smart-bin-realm}
-          jwk-set-uri: ${KEYCLOAK_JWK_URI:http://localhost:8180/realms/smart-bin-realm/protocol/openid-connect/certs}
-
-  # Redis is used for caching
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
-  cache:
-    type: redis
-    redis:
-      time-to-live: 10m
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: notification-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # ErrorHandlingDeserializer: a malformed message goes to the DLT instead of blocking the partition
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        "[spring.deserializer.value.delegate.class]": org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        "[spring.json.value.default.type]": com.bit_rhythm.notification_service.event.NotificationEvent
+        "[spring.json.trusted.packages]": com.bit_rhythm.notification_service.event,com.bit_rhythm.notification_service.core
+        # producers (auth-service) do not send type headers
+        "[spring.json.use.type.headers]": false
+    producer:        # only used to publish to the dead-letter topic
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      properties:
+        "[spring.json.add.type.headers]": false
+        "[acks]": all
+
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      "[mail.smtp.auth]": ${MAIL_SMTP_AUTH:false}
+      "[mail.smtp.starttls.enable]": ${MAIL_STARTTLS:false}
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 10000
+      "[mail.smtp.writetimeout]": 10000
+
+  messages:
+    basename: i18n/messages
+    fallback-to-system-locale: false
+
+  # Tokens are issued by auth-service. Keys come from its JWKS; nothing secret is shared.
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8081/.well-known/jwks.json}
+          issuer-uri: ${JWT_ISSUER}                                  # exactly auth-service's TOKEN_ISSUER
+          # users (inbox API) + services (internal API, audience = this service's name)
+          audiences: ${JWT_AUDIENCES:bit-rhythm-api,notification-service}
 
 server:
-  port: 8081
-  # Needed for per-IP rate limiting behind a gateway/load balancer: use the real client IP from
-  # X-Forwarded-For. Only safe if your gateway overwrites that header instead of passing it through.
+  port: 8084
   forward-headers-strategy: framework
 
-app:
-  email:
-    from: ${NOTI_EMAIL_FROM:kieubao2k4@gmail.com}
-    verification:
-      url: ${APP_EMAIL_VERIFICATION_URL:http://localhost:3000/verify-email}
-  frontend:
-    url: ${APP_FRONTEND_URL:http://localhost:3000}
+notification:
   kafka:
-    topics:
-      send-email: ${TOPIC_SEND_EMAIL:send-email-topic}
-      send-noti: ${TOPIC_DEVICE_NOTIFICATION:device-notification-topic}
+    topic: ${NOTIFICATION_TOPIC:notification.events}
+    dlt-topic: ${NOTIFICATION_TOPIC:notification.events}.DLT
+    max-retries: 5
+    initial-backoff: 1s
+    max-backoff: 30s
+  email:
+    provider: ${EMAIL_PROVIDER:smtp}     # smtp (spring.mail.*, e.g. mailpit) | gmail | (ses, sendgrid ... later)
+    from: ${MAIL_FROM:no-reply@bitrhythm.local}   # smtp provider only: Gmail always sends from its own account
+    from-name: Bit Rhythm
+    gmail:                               # used when provider = gmail
+      username: ${GMAIL_USERNAME:}
+      app-password: ${GMAIL_APP_PASSWORD:}
+  inbox:
+    heartbeat: 10s                       # SSE keep-alive, must be shorter than any proxy/gateway read timeout
+    max-page-size: 50
+  retention:
+    log: 90d
+    inbox: 180d
+
+management:
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        live:
+          include: livenessState
+        ready:
+          include: readinessState,db,redis

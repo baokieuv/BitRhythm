@@ -68,6 +68,10 @@ public class NotificationLog {
     @Column(name = "error_message", length = 500)
     private String errorMessage;
 
+    /** JSON of the NotificationRequest while not SENT (needed to re-send); cleared after a successful delivery. */
+    @Column(columnDefinition = "longtext")
+    private String payload;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

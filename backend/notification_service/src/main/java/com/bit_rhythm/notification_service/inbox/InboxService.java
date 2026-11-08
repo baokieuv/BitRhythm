@@ -33,13 +33,15 @@ public class InboxService {
 
     /** @param cursor id of the last item already received (null = first page) */
     @Transactional(readOnly = true)
-    public List<InboxNotification> list(Long userId, Long cursor, int size, boolean unreadOnly) {
+    public List<InboxResponse> list(Long userId, Long cursor, int size, boolean unreadOnly) {
         int pageSize = Math.max(1, Math.min(size, properties.inbox().maxPageSize()));
         long before = cursor == null ? Long.MAX_VALUE : cursor;
         PageRequest page = PageRequest.of(0, pageSize);
-        return unreadOnly
+        List<InboxNotification> response = unreadOnly
                 ? inboxRepository.findByUserIdAndReadAtIsNullAndIdLessThanOrderByIdDesc(userId, before, page)
                 : inboxRepository.findByUserIdAndIdLessThanOrderByIdDesc(userId, before, page);
+
+        return response.stream().map(InboxResponse::from).toList();
     }
 
     @Transactional(readOnly = true)

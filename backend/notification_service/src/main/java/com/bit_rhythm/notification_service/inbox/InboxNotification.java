@@ -1,6 +1,8 @@
 package com.bit_rhythm.notification_service.inbox;
 
+import com.bit_rhythm.core.entity.BaseEntity;
 import com.bit_rhythm.notification_service.core.NotificationType;
+import io.netty.handler.codec.base64.Base64Encoder;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -14,6 +16,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -21,7 +24,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-public class InboxNotification {
+public class InboxNotification extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,11 +49,8 @@ public class InboxNotification {
     @Column(name = "read_at")
     private LocalDateTime readAt;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
     @PrePersist
     void onCreate() {
-        createdAt = LocalDateTime.now();
+        createdAt = Instant.now();
     }
 }
