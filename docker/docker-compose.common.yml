@@ -1,4 +1,4 @@
-# Common infrastructure + shared networks. Always load this file first.
+# Common infrastructure + shared networks.
 
 services:
   kafka:

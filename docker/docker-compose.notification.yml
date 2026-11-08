@@ -1,0 +1,65 @@
+# notification-service + its own database
+services:
+  notification-service:
+    build:
+      context: ../backend
+      dockerfile: noti_service/Dockerfile
+    image: bitrhythm/notification-service:latest
+    container_name: bitrhythm_notification_service
+    restart: unless-stopped
+    init: true
+    env_file:
+      - env/shared.env
+      - env/redis.env
+      - env/notification.env
+    environment:
+      # Addresses inside the compose network. Set here (not only in env files) so the stack works
+      # even if shared.env still says localhost.
+      REDIS_HOST: redis
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    ports:
+      - "${NOTIFICATION_SERVICE_HOST_PORT:-8082}:8081"
+    depends_on:
+      notification-database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - notification_network      # private: notification-service <-> notification-database
+      - service_network   # gateway / other services call auth over HTTP (token, introspect, JWKS)
+      - common_network    # kafka, redis
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8081/health/ready > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  notification-database:
+    image: mariadb:11.4
+    container_name: bitrhythm_notification_database
+    restart: unless-stopped
+    env_file:
+      - env/notification.env
+    ports:
+      - "${NOTIFICATION_DB_HOST_PORT:-3308}:3306"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - notification_database_data:/var/lib/mysql
+    networks:
+      - notification_network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+networks:
+  notification_network:
+    driver: bridge
+
+volumes:
+  notification_database_data:
