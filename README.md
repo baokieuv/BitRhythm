@@ -5,11 +5,6 @@ and custom embedded players such as the ESP32. The project is being built as a
 service-oriented backend foundation that can support music catalog management,
 secure playback, social features, notifications, and hardware playback.
 
-> **Project status:** The repository currently provides the backend platform
-> foundation and local infrastructure stack. The frontend and ESP32 clients are
-> planned integration surfaces and are not yet runnable applications in this
-> repository.
-
 ## Architecture
 
 BitRhythm uses independently deployable Spring Boot services with shared

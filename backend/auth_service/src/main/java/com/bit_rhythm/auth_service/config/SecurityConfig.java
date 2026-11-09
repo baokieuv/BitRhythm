@@ -82,7 +82,7 @@ public class SecurityConfig {
                         .hasAuthority(USER_TOKEN)
                         // --- service tokens only ----------------------------------------------
                         // Add fine-grained checks per endpoint, e.g. @PreAuthorize("hasAuthority('SCOPE_users:read')").
-                        .requestMatchers("/internal/**").hasAuthority(SERVICE_TOKEN)
+                        .requestMatchers("/api/auth/internal/**").hasAuthority(SERVICE_TOKEN)
                         // --- everything else (RBAC/admin APIs, ...): user tokens only ---------
                         // Safe default: a service token cannot reach an endpoint unless it is listed above.
                         .anyRequest().hasAuthority(USER_TOKEN))

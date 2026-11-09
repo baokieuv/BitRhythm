@@ -32,7 +32,7 @@ spring:
             - id: auth-service
               uri: ${AUTH_SERVICE_URL:http://localhost:8081}
               predicates:
-                - Path=/api/auth/**
+                - Path=/api/auth/**, /api/roles/**, /api/permissions/**, /api/token/**
               filters:
                 # auth-service expects the public /api/auth/** path unchanged.
                 - RemoveRequestHeader=X-Internal-Api-Key
@@ -50,7 +50,7 @@ spring:
             - id: user-service
               uri: ${USER_SERVICE_URL:http://localhost:8082}
               predicates:
-                - Path=/api/user/**, /api/admin/**, /api/roles/**, /api/permissions/**, /api/token/**
+                - Path=/api/user/**, /api/admin/**
               filters:
                 - StripPrefix=2
                 - RemoveRequestHeader=X-Internal-Api-Key
@@ -83,6 +83,24 @@ spring:
                       maxBackoff: 1s
                       factor: 2
                 - CircuitBreaker=content-service
+            - id: notification-service
+              uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8084}
+              predicates:
+                - Path=/api/notifications/**, /api/notification/**
+              filters:
+                - StripPrefix=2
+                - RemoveRequestHeader=X-Internal-Api-Key
+                - AddRequestHeader=X-Internal-Api-Key, ${INTERNAL_API_KEY}
+                - name: Retry
+                  args:
+                    retries: 2
+                    series: SERVER_ERROR
+                    methods: GET,HEAD
+                    backoff:
+                      firstBackoff: 100ms
+                      maxBackoff: 1s
+                      factor: 2
+                - CircuitBreaker=notification-service
 
 server:
   port: ${GATEWAY_PORT:8080}

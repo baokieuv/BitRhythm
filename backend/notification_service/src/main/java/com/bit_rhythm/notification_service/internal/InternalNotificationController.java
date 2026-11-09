@@ -18,7 +18,7 @@ import java.util.Map;
  * Service tokens only: the caller needs scope notifications:send and "notification-service" in its allowed audiences.
  */
 @RestController
-@RequestMapping("/internal/notifications")
+@RequestMapping("/api/notifications/internal/notifications")
 @RequiredArgsConstructor
 public class InternalNotificationController {
 

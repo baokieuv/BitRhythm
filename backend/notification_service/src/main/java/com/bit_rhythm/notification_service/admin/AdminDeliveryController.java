@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** ROLE_ADMIN only (see SecurityConfig). Not routed by the gateway: call the service directly. */
 @RestController
-@RequestMapping("/admin/notifications/logs")
+@RequestMapping("/api/notifications/admin/notifications/logs")
 @RequiredArgsConstructor
 public class AdminDeliveryController {
 

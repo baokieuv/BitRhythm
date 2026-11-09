@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/admin/dlq")
+@RequestMapping("/api/notifications/admin/dlq")
 @RequiredArgsConstructor
 public class AdminDlqController {
 
