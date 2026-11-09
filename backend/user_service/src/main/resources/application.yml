@@ -1,0 +1,97 @@
+server:
+  port: 8082
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: user_service
+
+  datasource:
+    url: ${DB_URL:jdbc:mariadb://localhost:3306/user_service}
+    username: ${DB_USERNAME:notification_service}
+    password: ${DB_PASSWORD:}
+    driver-class-name: org.mariadb.jdbc.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: 2
+      connection-timeout: 5000
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update          # simple start: tables are created from entities (switch to Flyway later)
+      # also adds the new service_clients.allowed_audiences column automatically
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+  # Tokens are issued by auth-service. Keys come from its JWKS; nothing secret is shared.
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8081/.well-known/jwks.json}
+          issuer-uri: ${JWT_ISSUER}                                  # exactly auth-service's TOKEN_ISSUER
+          # users (inbox API) + services (internal API, audience = this service's name)
+          audiences: ${JWT_AUDIENCES:}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        "[acks]": all
+        "[enable.idempotence]": true
+        "[delivery.timeout.ms]": 120000
+    consumer:
+      group-id: user-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # ErrorHandlingDeserializer: a malformed message is logged and skipped instead of blocking the partition
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        "[spring.deserializer.value.delegate.class]": org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        "[spring.json.value.default.type]": com.bit_rhythm.user_service.event.NotificationEvent
+        "[spring.json.trusted.packages]": com.bit_rhythm.user_service.event
+        # producers (auth-service) do not send type headers
+        "[spring.json.use.type.headers]": false
+
+user:
+  avatar:
+    bucket: avatars
+    max-bytes: 2097152
+    allowed-types: image/jpeg,image/png,image/webp
+    presign-ttl: 5m
+  minio:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}          # nội bộ (stat, delete) - trong docker: http://minio:9000
+    public-endpoint: ${MINIO_PUBLIC_ENDPOINT:http://localhost:9000}  # công khai, chỉ để ký URL + dựng publicUrl
+    access-key: ${MINIO_ACCESS_KEY:minioadmin}
+    secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  topics:
+    notification: ${NOTIFICATION_TOPIC:notification.events}
+  outbox:
+    poll-interval-ms: 1000
+
+management:
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        live:
+          include: livenessState
+        ready:
+          include: readinessState,db
