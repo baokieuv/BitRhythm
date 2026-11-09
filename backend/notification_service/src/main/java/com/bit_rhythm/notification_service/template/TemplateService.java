@@ -95,10 +95,10 @@ public class TemplateService {
 
         String html;
         try {
-            html = templateEngine.process("templates/email/" + key + "_" + locale.getLanguage(), context);
+            html = templateEngine.process("email/" + key + "_" + locale.getLanguage(), context);
         } catch (TemplateInputException ex) {
             try {
-                html = templateEngine.process("templates/email/" + key + "_" + DEFAULT_LOCALE.getLanguage(), context);
+                html = templateEngine.process("email/" + key + "_" + DEFAULT_LOCALE.getLanguage(), context);
             } catch (TemplateInputException missing) {
                 throw new NotificationException(HttpStatus.INTERNAL_SERVER_ERROR, "TEMPLATE_NOT_FOUND",
                         "No email template for " + key);

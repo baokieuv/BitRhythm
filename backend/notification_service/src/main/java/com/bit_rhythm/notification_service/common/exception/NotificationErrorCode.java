@@ -16,7 +16,8 @@ public enum NotificationErrorCode implements ApiResponseCode {
     // --- System & Integration Errors ---
     EMAIL_SEND_FAILED(false, "SMB5003", "error.email_send_failed", HttpStatus.INTERNAL_SERVER_ERROR),
     KAFKA_EMAIL_CONSUME_FAILED(false, "SMB5004", "error.kafka_email_consume_failed", HttpStatus.INTERNAL_SERVER_ERROR),
-    KAFKA_NOTI_CONSUME_FAILED(false, "SMB5005", "error.kafka_noti_consume_failed", HttpStatus.INTERNAL_SERVER_ERROR);
+    KAFKA_NOTI_CONSUME_FAILED(false, "SMB5005", "error.kafka_noti_consume_failed", HttpStatus.INTERNAL_SERVER_ERROR),
+    NOTIFICATION_ERROR(false, "SMB5006", "error.notification_error", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final boolean success;
     private final String code;

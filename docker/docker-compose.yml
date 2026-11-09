@@ -3,4 +3,5 @@ name: bitrhythm
 include:
   - docker-compose.common.yml
   - docker-compose.auth.yml
+  - docker-compose.notification.yml
   - docker-compose.gateway.yml

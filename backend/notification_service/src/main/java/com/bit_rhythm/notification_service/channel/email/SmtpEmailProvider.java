@@ -3,6 +3,7 @@ package com.bit_rhythm.notification_service.channel.email;
 import com.bit_rhythm.notification_service.config.NotificationProperties;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "notification.email", name = "provider", havingValue = "smtp", matchIfMissing = true)
@@ -34,6 +36,9 @@ public class SmtpEmailProvider implements EmailProvider {
             helper.setSubject(message.subject());
             helper.setText(message.htmlBody(), true);
             mailSender.send(mime);
+
+            log.info("SMTP email sent");
+
             return UUID.randomUUID().toString();   // SMTP gives no usable id; SES/SendGrid providers return theirs
         } catch (Exception e) {
             throw new IllegalStateException("SMTP send failed", e);   // retryable

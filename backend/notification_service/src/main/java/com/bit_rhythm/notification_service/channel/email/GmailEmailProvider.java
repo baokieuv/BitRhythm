@@ -3,6 +3,7 @@ package com.bit_rhythm.notification_service.channel.email;
 import com.bit_rhythm.notification_service.common.exception.NotificationException;
 import com.bit_rhythm.notification_service.config.NotificationProperties;
 import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.mail.MailAuthenticationException;
@@ -27,6 +28,7 @@ import java.util.UUID;
  * traffic add a transactional provider (SES, SendGrid, ...) as another EmailProvider implementation.
  */
 @Component
+@Slf4j
 @ConditionalOnProperty(prefix = "notification.email", name = "provider", havingValue = "gmail")
 public class GmailEmailProvider implements EmailProvider {
     private static final String HOST = "smtp.gmail.com";
@@ -81,6 +83,9 @@ public class GmailEmailProvider implements EmailProvider {
             mailSender.send(mime);
 
             String messageId = mime.getMessageID();
+
+            log.info("Gmail email sent with message ID: {}", messageId);
+
             return messageId != null ? messageId : UUID.randomUUID().toString();
 
         } catch (MailAuthenticationException e) {

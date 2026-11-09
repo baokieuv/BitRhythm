@@ -3,10 +3,10 @@ package com.bit_rhythm.auth_service.event;
 import com.bit_rhythm.auth_service.common.enums.Purpose;
 import com.bit_rhythm.auth_service.config.AppProperties;
 import com.bit_rhythm.auth_service.user.User;
-import com.bit_rhythm.auth_service.verification.VerificationService;
 import com.bit_rhythm.core.outbox.EventSerializer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +15,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -22,35 +24,42 @@ import java.util.UUID;
 @Slf4j
 public class UserEventPublisher {
 
+    private static final int EVENT_VERSION = 1;
+    private static final String SOURCE = "auth-service";
+
     private final AuthOutboxRepository authOutboxRepository;
     private final AppProperties appProperties;
 
-    // We use MANDATORY or REQUIRED so it joins the existing transaction of the calling method
-    // (e.g., the method that saves the User or VerificationToken to the DB).
+    // REQUIRED: joins the transaction of the caller (the one that saves the user / the verification token), so the
+    // outbox row is committed or rolled back together with them.
     @Transactional(propagation = Propagation.REQUIRED)
     public void publishVerificationNotification(
             User user, String rawToken, Purpose purpose) {
 
-        String baseUrl = purpose == Purpose.PASSWORD_RESET
-                ? appProperties.resetPasswordUrl()
-                : appProperties.verifyEmailUrl();
-        String actionUrl = baseUrl + "?token=" +
-                URLEncoder.encode(rawToken, StandardCharsets.UTF_8);
-        String eventType = purpose == Purpose.PASSWORD_RESET
-                ? "PASSWORD_RESET_REQUESTED"
-                : "EMAIL_VERIFICATION_REQUESTED";
-        String subject = purpose == Purpose.PASSWORD_RESET
-                ? "Reset your BitRhythm password"
-                : "Verify your BitRhythm account";
+        boolean passwordReset = purpose == Purpose.PASSWORD_RESET;
+
+        String baseUrl = passwordReset ? appProperties.resetPasswordUrl() : appProperties.verifyEmailUrl();
+        String actionUrl = baseUrl + "?token=" + URLEncoder.encode(rawToken, StandardCharsets.UTF_8);
+
+        // Names that notification-service understands (its NotificationType) and the variable its templates use.
+        String eventType = passwordReset ? "PASSWORD_RESET_REQUESTED" : "EMAIL_VERIFICATION_REQUESTED";
+        String urlKey = passwordReset ? "resetUrl" : "verifyUrl";
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put(urlKey, actionUrl);
+        if (user.getUsername() != null) {
+            data.put("username", user.getUsername());
+        }
 
         NotificationEvent event = new NotificationEvent(
                 UUID.randomUUID().toString(),
                 eventType,
-                user.getEmail(),
-                user.getUsername(),
-                subject,
-                actionUrl,
-                Instant.now());
+                EVENT_VERSION,
+                Instant.now(),
+                // locale: null makes notification-service use English. Pass the user's language here once User has one.
+                new NotificationEvent.Recipient(user.getId(), user.getEmail(), null),
+                data,
+                new NotificationEvent.Metadata(SOURCE, MDC.get("correlationId")));
 
         try {
             // 1. Serialize the payload
@@ -69,7 +78,7 @@ public class UserEventPublisher {
 
             // 3. Save to database in the same transaction
             authOutboxRepository.save(outboxEntity);
-            log.info("Saved notification event to outbox for user: {}", user.getEmail());
+            log.info("Saved {} event {} to outbox for user id={}", eventType, event.eventId(), user.getId());
 
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to serialize or save notification event to outbox", ex);

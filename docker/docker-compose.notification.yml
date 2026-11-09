@@ -1,9 +1,9 @@
-# notification-service + its own database
+# notification-service + its own database (+ mailpit: a fake SMTP server with a web UI, for local development)
 services:
   notification-service:
     build:
       context: ../backend
-      dockerfile: noti_service/Dockerfile
+      dockerfile: notification_service/Dockerfile
     image: bitrhythm/notification-service:latest
     container_name: bitrhythm_notification_service
     restart: unless-stopped
@@ -13,12 +13,10 @@ services:
       - env/redis.env
       - env/notification.env
     environment:
-      # Addresses inside the compose network. Set here (not only in env files) so the stack works
-      # even if shared.env still says localhost.
       REDIS_HOST: redis
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
-      - "${NOTIFICATION_SERVICE_HOST_PORT:-8082}:8081"
+      - "${NOTIFICATION_SERVICE_HOST_PORT:-8084}:8084"
     depends_on:
       notification-database:
         condition: service_healthy
@@ -27,11 +25,11 @@ services:
       kafka:
         condition: service_healthy
     networks:
-      - notification_network      # private: notification-service <-> notification-database
-      - service_network   # gateway / other services call auth over HTTP (token, introspect, JWKS)
-      - common_network    # kafka, redis
+      - notification_network   # private: notification-service <-> its database <-> mailpit
+      - service_network        # gateway / other services call it over HTTP (JWKS is fetched from auth-service here)
+      - common_network         # kafka, redis
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8081/health/ready > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8084/health/ready > /dev/null || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -56,6 +54,17 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+
+  # Local development only: catches every email (web UI on http://localhost:8025). Remove it in production
+  # and point MAIL_HOST / MAIL_PORT / MAIL_USERNAME / MAIL_PASSWORD at the real SMTP relay.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: bitrhythm_mailpit
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_UI_HOST_PORT:-8025}:8025"
+    networks:
+      - notification_network
 
 networks:
   notification_network:
