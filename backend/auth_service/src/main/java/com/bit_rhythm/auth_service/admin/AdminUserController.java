@@ -3,8 +3,8 @@ package com.bit_rhythm.auth_service.admin;
 import com.bit_rhythm.auth_service.admin.dto.request.UpdateUserRolesRequest;
 import com.bit_rhythm.auth_service.admin.dto.request.UpdateUserStatusRequest;
 import com.bit_rhythm.auth_service.admin.dto.request.UserSearchRequest;
-import com.bit_rhythm.auth_service.common.exception.AuthCode;
 import com.bit_rhythm.core.dto.ApiResponseFormat;
+import com.bit_rhythm.core.exception.CoreErrorCode;
 import com.bit_rhythm.core.utils.ResponseFactory;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,13 +24,13 @@ public class AdminUserController {
     @PreAuthorize("hasAuthority('read:users')")
     public ResponseEntity<ApiResponseFormat<Object>> searchUsers(
             @Valid @RequestBody UserSearchRequest request) {
-        return responseFactory.response(AuthCode.SUCCESS, adminService.searchUsers(request));
+        return responseFactory.response(CoreErrorCode.SUCCESS, adminService.searchUsers(request));
     }
 
     @GetMapping("/{userId}")
     @PreAuthorize("hasAuthority('read:users')")
     public ResponseEntity<ApiResponseFormat<Object>> getUser(@PathVariable Long userId) {
-        return responseFactory.response(AuthCode.SUCCESS, adminService.getUser(userId));
+        return responseFactory.response(CoreErrorCode.SUCCESS, adminService.getUser(userId));
     }
 
     @PatchMapping("/{userId}/status")
@@ -38,13 +38,13 @@ public class AdminUserController {
     public ResponseEntity<ApiResponseFormat<Object>> updateStatus(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateUserStatusRequest request) {
-        return responseFactory.response(AuthCode.SUCCESS, adminService.updateStatus(userId, request));
+        return responseFactory.response(CoreErrorCode.SUCCESS, adminService.updateStatus(userId, request));
     }
 
     @PostMapping("/{userId}/unlock")
     @PreAuthorize("hasAuthority('write:users')")
     public ResponseEntity<ApiResponseFormat<Object>> unlock(@PathVariable Long userId) {
-        return responseFactory.response(AuthCode.SUCCESS, adminService.unlock(userId));
+        return responseFactory.response(CoreErrorCode.SUCCESS, adminService.unlock(userId));
     }
 
     @PutMapping("/{userId}/roles")
@@ -52,20 +52,20 @@ public class AdminUserController {
     public ResponseEntity<ApiResponseFormat<Object>> updateRoles(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateUserRolesRequest request) {
-        return responseFactory.response(AuthCode.SUCCESS, adminService.updateRoles(userId, request));
+        return responseFactory.response(CoreErrorCode.SUCCESS, adminService.updateRoles(userId, request));
     }
 
     @PostMapping("/{userId}/revoke-sessions")
     @PreAuthorize("hasAuthority('write:users')")
     public ResponseEntity<ApiResponseFormat<Object>> revokeSessions(@PathVariable Long userId) {
         adminService.revokeSessions(userId);
-        return responseFactory.response(AuthCode.SUCCESS, null);
+        return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
     @DeleteMapping("/{userId}")
     @PreAuthorize("hasAuthority('delete:users')")
     public ResponseEntity<ApiResponseFormat<Object>> deleteUser(@PathVariable Long userId) {
         adminService.deleteUser(userId);
-        return responseFactory.response(AuthCode.SUCCESS, null);
+        return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 }

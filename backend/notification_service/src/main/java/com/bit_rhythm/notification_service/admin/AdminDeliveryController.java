@@ -6,6 +6,7 @@ import com.bit_rhythm.core.utils.ResponseFactory;
 import com.bit_rhythm.notification_service.delivery.DeliveryStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +24,7 @@ public class AdminDeliveryController {
     private final ResponseFactory responseFactory;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('read:notification-logs')")
     public ResponseEntity<ApiResponseFormat<Object>> search(@RequestParam(required = false) DeliveryStatus status,
                                                             @RequestParam(required = false) Long userId,
                                                             @RequestParam(defaultValue = "0") int page,
@@ -32,6 +34,7 @@ public class AdminDeliveryController {
     }
 
     @PostMapping("/{id}/resend")
+    @PreAuthorize("hasAuthority('write:notification-logs')")
     public ResponseEntity<ApiResponseFormat<Object>> resend(@PathVariable Long id) {
         return responseFactory.response(CoreErrorCode.SUCCESS, adminDeliveryService.resend(id));
     }

@@ -9,8 +9,6 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum AuthCode implements ApiResponseCode {
 
-    SUCCESS(true, "AVT0000", "success", HttpStatus.OK),
-    INTERNAL_SERVER_ERROR(false, "AVT0001", "error.internal_server_error", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_CREDENTIALS(false, "AUTH0001", "auth.invalid_credentials", HttpStatus.UNAUTHORIZED),
     ACCOUNT_LOCKED(false, "AUTH0002", "auth.account_locked", HttpStatus.LOCKED),
     ACCOUNT_DISABLED(false, "AUTH0003", "auth.account_disabled", HttpStatus.FORBIDDEN),

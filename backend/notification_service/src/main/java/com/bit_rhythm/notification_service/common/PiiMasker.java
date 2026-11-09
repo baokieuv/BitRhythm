@@ -1,9 +1,5 @@
 package com.bit_rhythm.notification_service.common;
 
-
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-
 /** Everything that prints an address or a token (logs, notification_log) goes through here. */
 public final class PiiMasker {
     private PiiMasker() {

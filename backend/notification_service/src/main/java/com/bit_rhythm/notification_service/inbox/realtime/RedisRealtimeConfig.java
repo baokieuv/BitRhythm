@@ -1,5 +1,6 @@
 package com.bit_rhythm.notification_service.inbox.realtime;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.listener.PatternTopic;
@@ -10,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 @Configuration
 public class RedisRealtimeConfig {
 
+    @Bean
     public RedisMessageListenerContainer inboxListenerContainer(RedisConnectionFactory connectionFactory,
                                                                 SseEmitterRegistry registry) {
 

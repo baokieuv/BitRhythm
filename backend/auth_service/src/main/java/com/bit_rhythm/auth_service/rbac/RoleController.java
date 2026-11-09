@@ -1,8 +1,8 @@
 package com.bit_rhythm.auth_service.rbac;
 
-import com.bit_rhythm.auth_service.common.exception.AuthCode;
 import com.bit_rhythm.auth_service.rbac.dto.request.*;
 import com.bit_rhythm.core.dto.ApiResponseFormat;
+import com.bit_rhythm.core.exception.CoreErrorCode;
 import com.bit_rhythm.core.utils.ResponseFactory;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ public class RoleController {
     public ResponseEntity<ApiResponseFormat<Object>> createRole(
             @Valid @RequestBody CreateRoleRequest request
     ) {
-        return responseFactory.response(AuthCode.SUCCESS, rbacService.createRole(request));
+        return responseFactory.response(CoreErrorCode.SUCCESS, rbacService.createRole(request));
     }
 
     @PostMapping("/search")
@@ -32,14 +32,14 @@ public class RoleController {
     public ResponseEntity<ApiResponseFormat<Object>> getAllRoles(
             @Valid @RequestBody RoleSearchRequest request) {
 
-        return responseFactory.response(AuthCode.SUCCESS, rbacService.getAllRoles(request));
+        return responseFactory.response(CoreErrorCode.SUCCESS, rbacService.getAllRoles(request));
     }
 
     @GetMapping("/{roleId}")
     @PreAuthorize("hasAuthority('read:roles')")
     public ResponseEntity<ApiResponseFormat<Object>> getRoleById(@PathVariable Long roleId) {
 
-        return responseFactory.response(AuthCode.SUCCESS, rbacService.getRoleById(roleId));
+        return responseFactory.response(CoreErrorCode.SUCCESS, rbacService.getRoleById(roleId));
     }
 
     @PutMapping("/{roleId}")
@@ -49,7 +49,7 @@ public class RoleController {
             @Valid @RequestBody UpdateRoleRequest request
     ) {
 
-        return responseFactory.response(AuthCode.SUCCESS, rbacService.updateRole(roleId, request));
+        return responseFactory.response(CoreErrorCode.SUCCESS, rbacService.updateRole(roleId, request));
     }
 
     @DeleteMapping("/{roleId}")
@@ -57,7 +57,7 @@ public class RoleController {
     public ResponseEntity<ApiResponseFormat<Object>> deleteRole(@PathVariable Long roleId)
     {
         rbacService.deleteRole(roleId);
-        return responseFactory.response(AuthCode.SUCCESS, null);
+        return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
     // --- Role-Permission Management ---
@@ -69,7 +69,7 @@ public class RoleController {
             @Valid @RequestBody AssignPermissionsRequest request)
     {
         rbacService.assignPermissions(roleId, request.permissionIds());
-        return responseFactory.response(AuthCode.SUCCESS, null);
+        return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
     @DeleteMapping("/{roleId}/permissions")
@@ -79,6 +79,6 @@ public class RoleController {
             @Valid @RequestBody RemovePermissionsRequest request)
     {
         rbacService.removePermissions(roleId, request.permissionIds());
-        return responseFactory.response(AuthCode.SUCCESS, null);
+        return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 }

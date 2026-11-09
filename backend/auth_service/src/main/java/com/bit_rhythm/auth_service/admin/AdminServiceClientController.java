@@ -1,9 +1,9 @@
 package com.bit_rhythm.auth_service.admin;
 
 import com.bit_rhythm.auth_service.admin.dto.request.ServiceClientRegisterRequest;
-import com.bit_rhythm.auth_service.common.exception.AuthCode;
 import com.bit_rhythm.auth_service.token.ServiceClientService;
 import com.bit_rhythm.core.dto.ApiResponseFormat;
+import com.bit_rhythm.core.exception.CoreErrorCode;
 import com.bit_rhythm.core.utils.ResponseFactory;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,13 +24,13 @@ public class AdminServiceClientController {
     public ResponseEntity<ApiResponseFormat<Object>> registerClient(
             @RequestBody @Valid ServiceClientRegisterRequest request
     ) {
-        return responseFactory.response(AuthCode.SUCCESS, clientService.register(request));
+        return responseFactory.response(CoreErrorCode.SUCCESS, clientService.register(request));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('read:service-clients')")
     public ResponseEntity<ApiResponseFormat<Object>> listClients() {
-        return responseFactory.response(AuthCode.SUCCESS, clientService.searchServiceClients());
+        return responseFactory.response(CoreErrorCode.SUCCESS, clientService.searchServiceClients());
     }
 
     @PutMapping("/{clientId}/rotate-secret")
@@ -38,7 +38,7 @@ public class AdminServiceClientController {
     public ResponseEntity<ApiResponseFormat<Object>> rotateSecret(
             @PathVariable("clientId") String clientId
     ) {
-        return responseFactory.response(AuthCode.SUCCESS, clientService.rotateSecret(clientId));
+        return responseFactory.response(CoreErrorCode.SUCCESS, clientService.rotateSecret(clientId));
     }
 
     @DeleteMapping("/{clientId}")
@@ -47,6 +47,6 @@ public class AdminServiceClientController {
             @PathVariable("clientId") String clientId
     ) {
         clientService.deactivate(clientId);
-        return responseFactory.response(AuthCode.SUCCESS, null);
+        return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 }

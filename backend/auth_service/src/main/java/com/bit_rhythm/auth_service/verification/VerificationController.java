@@ -1,9 +1,9 @@
 package com.bit_rhythm.auth_service.verification;
 
-import com.bit_rhythm.auth_service.common.exception.AuthCode;
 import com.bit_rhythm.auth_service.verification.dto.request.ResendVerificationRequest;
 import com.bit_rhythm.auth_service.verification.dto.request.VerificationRequest;
 import com.bit_rhythm.core.dto.ApiResponseFormat;
+import com.bit_rhythm.core.exception.CoreErrorCode;
 import com.bit_rhythm.core.utils.ResponseFactory;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,13 +25,13 @@ public class VerificationController {
     public ResponseEntity<ApiResponseFormat<Object>> verifyEmail(
             @Valid @RequestBody VerificationRequest request) {
         verificationService.verifyEmail(request.token());
-        return responseFactory.response(AuthCode.SUCCESS, null);
+        return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
     @PostMapping("/resend-verification")
     public ResponseEntity<ApiResponseFormat<Object>> resendVerificationEmail(
             @Valid @RequestBody ResendVerificationRequest request) {
         verificationService.resendVerificationEmail(request.email());
-        return responseFactory.response(AuthCode.SUCCESS, null);
+        return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 }

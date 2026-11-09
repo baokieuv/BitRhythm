@@ -2,7 +2,6 @@ package com.bit_rhythm.notification_service.inbox;
 
 import com.bit_rhythm.core.entity.BaseEntity;
 import com.bit_rhythm.notification_service.core.NotificationType;
-import io.netty.handler.codec.base64.Base64Encoder;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

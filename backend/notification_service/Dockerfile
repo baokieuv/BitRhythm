@@ -26,6 +26,6 @@ COPY --from=build /workspace/notification_service/target/notification_service-0.
 RUN chown spring:spring /app/notification-service.jar
 USER spring
 
-EXPOSE 8081
+EXPOSE 8084
 
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/notification-service.jar"]

@@ -1,10 +1,10 @@
 package com.bit_rhythm.auth_service.rbac;
 
-import com.bit_rhythm.auth_service.common.exception.AuthCode;
 import com.bit_rhythm.auth_service.rbac.dto.request.CreatePermissionRequest;
 import com.bit_rhythm.auth_service.rbac.dto.request.PermissionSearchRequest;
 import com.bit_rhythm.auth_service.rbac.dto.request.UpdatePermissionRequest;
 import com.bit_rhythm.core.dto.ApiResponseFormat;
+import com.bit_rhythm.core.exception.CoreErrorCode;
 import com.bit_rhythm.core.utils.ResponseFactory;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ public class PermissionController {
     public ResponseEntity<ApiResponseFormat<Object>> createPermission(
             @Valid @RequestBody CreatePermissionRequest request
     ) {
-        return responseFactory.response(AuthCode.SUCCESS, rbacService.createPermission(request));
+        return responseFactory.response(CoreErrorCode.SUCCESS, rbacService.createPermission(request));
     }
 
     @PostMapping("/search")
@@ -33,13 +33,13 @@ public class PermissionController {
     public ResponseEntity<ApiResponseFormat<Object>> getAllPermissions(
             @Valid @RequestBody PermissionSearchRequest request
     ) {
-        return responseFactory.response(AuthCode.SUCCESS, rbacService.getAllPermissions(request));
+        return responseFactory.response(CoreErrorCode.SUCCESS, rbacService.getAllPermissions(request));
     }
 
     @GetMapping("/{permissionId}")
     @PreAuthorize("hasAuthority('read:permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> getPermissionById(@PathVariable Long permissionId) {
-        return responseFactory.response(AuthCode.SUCCESS, rbacService.getPermissionById(permissionId));
+        return responseFactory.response(CoreErrorCode.SUCCESS, rbacService.getPermissionById(permissionId));
     }
 
     @PutMapping("/{permissionId}")
@@ -48,13 +48,13 @@ public class PermissionController {
             @PathVariable Long permissionId,
             @Valid @RequestBody UpdatePermissionRequest request
     ) {
-        return responseFactory.response(AuthCode.SUCCESS, rbacService.updatePermission(permissionId, request));
+        return responseFactory.response(CoreErrorCode.SUCCESS, rbacService.updatePermission(permissionId, request));
     }
 
     @DeleteMapping("/{permissionId}")
     @PreAuthorize("hasAuthority('delete:permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> deletePermission(@PathVariable Long permissionId) {
         rbacService.deletePermission(permissionId);
-        return responseFactory.response(AuthCode.SUCCESS, null);
+        return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 }

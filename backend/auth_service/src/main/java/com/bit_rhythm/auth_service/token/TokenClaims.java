@@ -8,7 +8,7 @@ public final class TokenClaims {
     public static final String TYPE_SERVICE = "service";
 
     public static final String CLIENT_ID = "client_id";
-    public static final String SCOPE = "scope";
+    public static final String SCOPE = "scopes";
     public static final String EMAIL = "email";
     public static final String ROLES = "roles";
     public static final String PERMISSIONS = "permissions";

@@ -34,11 +34,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/health/**", "/error").permitAll()
                         // links inside emails and provider callbacks carry no bearer token
-                        .requestMatchers(HttpMethod.GET, "/notifications/unsubscribe").permitAll()
                         .requestMatchers(HttpMethod.POST, "/webhooks/**").permitAll()   // verified by signature in the controller
                         .requestMatchers("/internal/**").hasAuthority("TOKEN_SERVICE")  // + @PreAuthorize on scope
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/notifications/**").hasAuthority("TOKEN_ACCESS")
+                        .requestMatchers("/api/admin/**").hasAuthority("TOKEN_ACCESS")
+                        .requestMatchers("/api/notifications/**").hasAuthority("TOKEN_ACCESS")
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));

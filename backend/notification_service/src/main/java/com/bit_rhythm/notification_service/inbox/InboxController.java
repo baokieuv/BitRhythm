@@ -20,7 +20,7 @@ import java.util.Map;
 
 /** The signed-in user's inbox. User tokens only (see SecurityConfig); the user id always comes from the token. */
 @RestController
-@RequestMapping("/notifications")
+@RequestMapping("/api/notifications")
 @RequiredArgsConstructor
 public class InboxController {
 

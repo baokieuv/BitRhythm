@@ -34,7 +34,7 @@ spring:
       group-id: notification-service
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      # ErrorHandlingDeserializer: a malformed message goes to the DLT instead of blocking the partition
+      # ErrorHandlingDeserializer: a malformed message is logged and skipped instead of blocking the partition
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
         "[spring.deserializer.value.delegate.class]": org.springframework.kafka.support.serializer.JacksonJsonDeserializer
@@ -42,12 +42,6 @@ spring:
         "[spring.json.trusted.packages]": com.bit_rhythm.notification_service.event,com.bit_rhythm.notification_service.core
         # producers (auth-service) do not send type headers
         "[spring.json.use.type.headers]": false
-    producer:        # only used to publish to the dead-letter topic
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
-      properties:
-        "[spring.json.add.type.headers]": false
-        "[acks]": all
 
   mail:
     host: ${MAIL_HOST:localhost}
@@ -82,7 +76,6 @@ server:
 notification:
   kafka:
     topic: ${NOTIFICATION_TOPIC:notification.events}
-    dlt-topic: ${NOTIFICATION_TOPIC:notification.events}.DLT
     max-retries: 5
     initial-backoff: 1s
     max-backoff: 30s
