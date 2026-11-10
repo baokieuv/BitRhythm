@@ -1,45 +1,49 @@
 package com.bit_rhythm.user_service.event.outbox;
 
+import com.bit_rhythm.core.outbox.OutboxEvent;
 import jakarta.persistence.*;
-import lombok.Getter;
+import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-/** TODO: implements OutboxEvent của core nếu dùng chung. */
 @Entity
 @Table(name = "outbox")
-@Getter @NoArgsConstructor
-public class UserOutboxEntity {
+@NoArgsConstructor
+@AllArgsConstructor
+@Setter
+public class UserOutboxEntity implements OutboxEvent {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "id", nullable = false, unique = true)
+    private Long eventId;
 
-    private String aggregateId;     // dùng làm Kafka key
-    private String eventId;
+    @Column(name = "aggregate_type", nullable = false)
+    private String aggregateType;
+
+    @Column(name = "aggregate_id", nullable = false)
+    private String aggregateId;
+
+    @Column(name = "event_type", nullable = false)
     private String eventType;
-    private String topic;
 
-    @Column(columnDefinition = "text")
+    @Column(name = "payload", nullable = false, columnDefinition = "LONGTEXT")
     private String payload;
 
-    @Enumerated(EnumType.STRING)
-    private OutboxStatus status = OutboxStatus.PENDING;
+    @Column(name = "is_processed", nullable = false)
+    private Integer isProcessed = 0; // 0 = not processed, 1 = processed
 
-    private LocalDateTime createdAt = LocalDateTime.now();
-    private LocalDateTime sentAt;
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
-    public UserOutboxEntity(String aggregateId, String eventId, String eventType, String topic, String payload) {
-        this.aggregateId = aggregateId;
-        this.eventId = eventId;
-        this.eventType = eventType;
-        this.topic = topic;
-        this.payload = payload;
-    }
-
-    public void markSent() {
-        this.status = OutboxStatus.SENT;
-        this.sentAt = LocalDateTime.now();
-    }
+    // Getters overriding the OutboxEvent interface
+    @Override public Long getEventId() { return eventId; }
+    @Override public String getAggregateType() { return aggregateType; }
+    @Override public String getAggregateId() { return aggregateId; }
+    @Override public String getEventType() { return eventType; }
+    @Override public String getPayload() { return payload; }
+    @Override public Integer isProcessed() { return isProcessed; }
+    @Override public LocalDateTime getCreatedAt() { return createdAt; }
 }

@@ -1,89 +1,48 @@
 package com.bit_rhythm.user_service.profile;
 
-import com.bit_rhythm.user_service.avatar.storage.StorageClient;
-import com.bit_rhythm.user_service.common.CurrentUser;
-import com.bit_rhythm.user_service.common.exception.UserCode;
-import com.bit_rhythm.user_service.common.exception.UserException;
-import com.bit_rhythm.user_service.profile.dto.*;
-import com.bit_rhythm.user_service.settings.ProfileVisibility;
-import com.bit_rhythm.user_service.settings.SettingsRepository;
-import com.bit_rhythm.user_service.settings.UserSettings;
-import org.springframework.dao.DataIntegrityViolationException;
+import com.bit_rhythm.user_service.profile.dto.ProfileResponse;
+import com.bit_rhythm.user_service.profile.dto.PublicProfileResponse;
+import com.bit_rhythm.user_service.profile.dto.UpdateProfileRequest;
+import com.bit_rhythm.user_service.profile.dto.UserSummary;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class ProfileService {
 
-    private final ProfileRepository profiles;
-    private final SettingsRepository settings;
-    private final StorageClient storage;
+    /**
+     * [S1] TODO(hint): return the profile of the token's user, creating it (and its UserSettings) on the first call:
+     * displayName defaults to the part of the "email" claim before the "@". Two requests can arrive together:
+     * catch DataIntegrityViolationException on insert and read the row again. Note: save() on an entity with an
+     * assigned id first runs a SELECT; that is fine here, just keep the catch.
+     */
+    public UserProfile getOrCreate(Jwt jwt) {
+        throw new UnsupportedOperationException("TODO: get or create the profile of the token's user");
+    }
 
-    public ProfileService(ProfileRepository profiles, SettingsRepository settings, StorageClient storage) {
-        this.profiles = profiles;
-        this.settings = settings;
-        this.storage = storage;
+    /** [S1] TODO(hint): getOrCreate + map with avatarUrl = storageClient.publicUrl(avatarKey). */
+    public ProfileResponse getMine(Jwt jwt) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    /** [S1] TODO(hint): getOrCreate, profile.update(request), save, map. */
+    public ProfileResponse updateMine(Jwt jwt, UpdateProfileRequest request) {
+        throw new UnsupportedOperationException("TODO");
     }
 
     /**
-     * Tạo hồ sơ + settings mặc định ở lần gọi đầu.
-     * Cố ý KHÔNG @Transactional: mỗi saveAndFlush là transaction riêng, nên bắt
-     * DataIntegrityViolationException (2 request đồng thời) rồi đọc lại được.
+     * [S1] TODO(hint): 404 PROFILE_NOT_FOUND when missing. Private profile (settings.visibility) -> restricted view,
+     * unless the viewer is the owner. [S2] also 404 when status is HIDDEN/DELETED or when either user blocked the other.
+     * "following" = FollowService.isFollowing(viewerId, id).
      */
-    public UserProfile getOrCreate(Jwt jwt) {
-        Long id = CurrentUser.id(jwt);
-        return profiles.findById(id).orElseGet(() -> {
-            try {
-                var p = profiles.saveAndFlush(UserProfile.create(id, CurrentUser.email(jwt)));
-                ensureSettings(id);
-                return p;
-            } catch (DataIntegrityViolationException e) {
-                ensureSettings(id);
-                return profiles.findById(id).orElseThrow(() -> new UserException(UserCode.PROFILE_NOT_FOUND));
-            }
-        });
-    }
-
-    private void ensureSettings(Long id) {
-        if (settings.existsById(id)) return;
-        try {
-            settings.saveAndFlush(UserSettings.defaults(id));
-        } catch (DataIntegrityViolationException ignored) {
-            // request kia đã tạo
-        }
-    }
-
-    public ProfileResponse getMine(Jwt jwt) {
-        return toMine(getOrCreate(jwt), CurrentUser.email(jwt));
-    }
-
-    @Transactional
-    public ProfileResponse updateMine(Jwt jwt, UpdateProfileRequest req) {
-        getOrCreate(jwt);
-        var p = profiles.findById(CurrentUser.id(jwt)).orElseThrow(() -> new UserException(UserCode.PROFILE_NOT_FOUND));
-        p.update(req);
-        return toMine(p, CurrentUser.email(jwt));
-    }
-
-    @Transactional(readOnly = true)
     public PublicProfileResponse getPublic(Long id, Long viewerId) {
-        var p = profiles.findById(id).orElseThrow(() -> new UserException(UserCode.PROFILE_NOT_FOUND));
-        if (p.getStatus() != ProfileStatus.ACTIVE) throw new UserException(UserCode.PROFILE_NOT_FOUND); // [S2]
-        // [S2] if (blockService.isBlockedEitherWay(id, viewerId)) throw new UserException(UserCode.PROFILE_NOT_FOUND);
-
-        var visibility = settings.findById(id).map(UserSettings::getVisibility).orElse(ProfileVisibility.PUBLIC);
-        boolean restricted = visibility == ProfileVisibility.PRIVATE && !id.equals(viewerId);
-        if (restricted) {
-            return new PublicProfileResponse(id, p.getDisplayName(), storage.publicUrl(p.getAvatarKey()),
-                    null, null, null, null, null, true);
-        }
-        return new PublicProfileResponse(id, p.getDisplayName(), storage.publicUrl(p.getAvatarKey()),
-                p.getBio(), p.getCountry(), p.isVerified(), p.getFollowerCount(), p.getFollowingCount(), false);
+        throw new UnsupportedOperationException("TODO");
     }
 
-    private ProfileResponse toMine(UserProfile p, String email) {
-        return new ProfileResponse(p.getUserId(), email, p.getDisplayName(), p.getBio(), p.getCountry(),
-                storage.publicUrl(p.getAvatarKey()), p.isVerified(), p.getFollowerCount(), p.getFollowingCount());
+    /** [S2] TODO(hint): batch lookup for other services (InternalUserController); keep the order of ids, skip unknown ones. */
+    public List<UserSummary> summaries(List<Long> ids) {
+        throw new UnsupportedOperationException("TODO");
     }
 }

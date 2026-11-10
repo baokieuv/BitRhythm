@@ -1,73 +1,35 @@
 package com.bit_rhythm.user_service.avatar;
 
-import com.bit_rhythm.user_service.avatar.dto.*;
-import com.bit_rhythm.user_service.avatar.storage.StorageClient;
-import com.bit_rhythm.user_service.common.exception.UserCode;
-import com.bit_rhythm.user_service.common.exception.UserException;
-import com.bit_rhythm.user_service.config.UserProperties;
-import com.bit_rhythm.user_service.profile.ProfileRepository;
+import com.bit_rhythm.user_service.avatar.dto.ConfirmAvatarRequest;
+import com.bit_rhythm.user_service.avatar.dto.UploadUrlRequest;
+import com.bit_rhythm.user_service.avatar.dto.UploadUrlResponse;
+import com.bit_rhythm.user_service.profile.dto.ProfileResponse;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Map;
-import java.util.UUID;
 
 @Service
 public class AvatarService {
 
-    private static final Map<String, String> EXT = Map.of(
-            "image/jpeg", "jpg", "image/png", "png", "image/webp", "webp");
-
-    private final StorageClient storage;
-    private final ProfileRepository profiles;
-    private final UserProperties props;
-
-    public AvatarService(StorageClient storage, ProfileRepository profiles, UserProperties props) {
-        this.storage = storage;
-        this.profiles = profiles;
-        this.props = props;
+    /**
+     * [S1] TODO(hint): 1) contentType must be in user.avatar.allowed-types (AVATAR_TYPE_NOT_ALLOWED), sizeBytes <= max-bytes
+     * (AVATAR_TOO_LARGE). 2) key = "avatars/" + userId + "/" + UUID + "." + extension chosen from the content type (never
+     * from user input). 3) storageClient.presignUpload(key, contentType, presign-ttl). Nothing is saved in the DB yet.
+     */
+    public UploadUrlResponse createUploadUrl(Long userId, UploadUrlRequest request) {
+        throw new UnsupportedOperationException("TODO");
     }
 
-    public UploadUrlResponse requestUpload(Long userId, UploadUrlRequest req) {
-        var cfg = props.avatar();
-        if (!cfg.allowedTypes().contains(req.contentType()) || !EXT.containsKey(req.contentType())) {
-            throw new UserException(UserCode.AVATAR_TYPE_NOT_ALLOWED);
-        }
-        if (req.size() > cfg.maxBytes()) throw new UserException(UserCode.AVATAR_TOO_LARGE);
-        if (!profiles.existsById(userId)) throw new UserException(UserCode.PROFILE_NOT_FOUND);
-
-        var key = "avatars/" + userId + "/" + UUID.randomUUID() + "." + EXT.get(req.contentType());
-        var url = storage.presignUpload(key, req.contentType(), cfg.presignTtl());
-        return new UploadUrlResponse(url, key, "PUT", cfg.presignTtl().toSeconds());
+    /**
+     * [S1] TODO(hint): the key must start with "avatars/" + userId + "/" (otherwise anyone could claim someone else's
+     * object); storageClient.stat(key) must exist (AVATAR_NOT_UPLOADED) and its size/content type must respect the
+     * limits again (the client could have uploaded anything). Then set profile.avatarKey, and delete the previous object
+     * AFTER the DB update succeeded.
+     */
+    public ProfileResponse confirm(Long userId, ConfirmAvatarRequest request) {
+        throw new UnsupportedOperationException("TODO");
     }
 
-    @Transactional
-    public String confirm(Long userId, ConfirmAvatarRequest req) {
-        var key = req.key();
-        if (!key.startsWith("avatars/" + userId + "/")) throw new UserException(UserCode.AVATAR_NOT_UPLOADED);
-
-        var obj = storage.stat(key).orElseThrow(() -> new UserException(UserCode.AVATAR_NOT_UPLOADED));
-        if (obj.size() > props.avatar().maxBytes()) {
-            storage.delete(key);
-            throw new UserException(UserCode.AVATAR_TOO_LARGE);
-        }
-        if (!props.avatar().allowedTypes().contains(obj.contentType())) {
-            storage.delete(key);
-            throw new UserException(UserCode.AVATAR_TYPE_NOT_ALLOWED);
-        }
-
-        var profile = profiles.findById(userId).orElseThrow(() -> new UserException(UserCode.PROFILE_NOT_FOUND));
-        var old = profile.getAvatarKey();
-        profile.setAvatarKey(key);
-        if (old != null && !old.equals(key)) storage.delete(old);
-        return storage.publicUrl(key);
-    }
-
-    @Transactional
-    public void remove(Long userId) {
-        var profile = profiles.findById(userId).orElseThrow(() -> new UserException(UserCode.PROFILE_NOT_FOUND));
-        var old = profile.getAvatarKey();
-        profile.setAvatarKey(null);
-        if (old != null) storage.delete(old);
+    /** [S1] TODO(hint): clear profile.avatarKey, then delete the object; ignore "not found". */
+    public ProfileResponse remove(Long userId) {
+        throw new UnsupportedOperationException("TODO");
     }
 }

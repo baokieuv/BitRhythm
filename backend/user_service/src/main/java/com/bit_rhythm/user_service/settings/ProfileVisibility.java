@@ -1,3 +1,6 @@
 package com.bit_rhythm.user_service.settings;
 
-public enum ProfileVisibility { PUBLIC, PRIVATE }
+public enum ProfileVisibility {
+    PUBLIC,
+    PRIVATE
+}

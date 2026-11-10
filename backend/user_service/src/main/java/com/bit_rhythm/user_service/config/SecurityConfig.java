@@ -2,40 +2,67 @@ package com.bit_rhythm.user_service.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
-/**
- * TODO: thay bằng chain của notification-service / core (kiểm tra token type
- * TOKEN_ACCESS, TOKEN_SERVICE + scope). Bản này chỉ xác thực JWT cơ bản.
- */
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
 @Configuration
 public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(a -> a
-                .requestMatchers("/actuator/health/**").permitAll()
-                .requestMatchers("/users/**").authenticated()          // TOKEN_ACCESS
-                .requestMatchers("/admin/**").hasRole("ADMIN")         // [S2]
-                .requestMatchers("/internal/**").denyAll()             // [S2] TOKEN_SERVICE + scope
-                .anyRequest().denyAll())
-            .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(jwtConverter())));
+        http
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/health/**", "/error").permitAll()
+                        // links inside emails and provider callbacks carry no bearer token
+                        .requestMatchers(HttpMethod.POST, "/webhooks/**").permitAll()   // verified by signature in the controller
+                        .requestMatchers("/api/users/internal/**").hasAuthority("TOKEN_SERVICE")  // + @PreAuthorize on scope
+                        .requestMatchers("/api/users/admin/**").hasAuthority("TOKEN_ACCESS")
+                        .requestMatchers("/api/users/**").hasAuthority("TOKEN_ACCESS")
+                        .anyRequest().denyAll())
+                .oauth2ResourceServer(oauth -> oauth
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return http.build();
     }
 
-    private JwtAuthenticationConverter jwtConverter() {
-        var authorities = new JwtGrantedAuthoritiesConverter();
-        authorities.setAuthoritiesClaimName("roles");
-        authorities.setAuthorityPrefix("ROLE_"); // bỏ prefix nếu claim roles đã có sẵn "ROLE_"
-        var converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(authorities);
+    private JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter scopeConverter = new JwtGrantedAuthoritiesConverter();
+
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            Set<GrantedAuthority> authorities = new LinkedHashSet<>(scopeConverter.convert(jwt));
+
+            String tokenType = jwt.getClaimAsString("token_type");
+            if (tokenType != null) {
+                authorities.add(new SimpleGrantedAuthority("TOKEN_" + tokenType.toUpperCase(Locale.ROOT)));
+            }
+            addAll(authorities, jwt.getClaimAsStringList("roles"), "ROLE_");
+            addAll(authorities, jwt.getClaimAsStringList("permissions"), "");
+            addAll(authorities, jwt.getClaimAsStringList("scopes"), "");
+            return authorities;
+        });
         return converter;
+    }
+
+    private void addAll(Set<GrantedAuthority> target, List<String> values, String prefix) {
+        if (values == null) {
+            return;
+        }
+        for (String value : values) {
+            target.add(new SimpleGrantedAuthority(value.startsWith(prefix) ? value : prefix + value));
+        }
     }
 }

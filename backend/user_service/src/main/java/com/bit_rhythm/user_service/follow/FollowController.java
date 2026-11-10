@@ -1,50 +1,52 @@
 package com.bit_rhythm.user_service.follow;
 
+import com.bit_rhythm.core.dto.ApiResponseFormat;
+import com.bit_rhythm.core.exception.CoreErrorCode;
+import com.bit_rhythm.core.utils.ResponseFactory;
 import com.bit_rhythm.user_service.common.CurrentUser;
-import com.bit_rhythm.user_service.common.CursorPage;
-import com.bit_rhythm.user_service.follow.dto.FollowUserResponse;
-import com.bit_rhythm.user_service.profile.ProfileService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/users/{id}")
+@RequestMapping("/api/users/{id}")
+@RequiredArgsConstructor
 public class FollowController {
 
-    private final FollowService service;
-    private final ProfileService profileService;
-
-    public FollowController(FollowService service, ProfileService profileService) {
-        this.service = service;
-        this.profileService = profileService;
-    }
+    private final FollowService followService;
+    private final ResponseFactory responseFactory;
 
     @PutMapping("/follow")
-    public ResponseEntity<Void> follow(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
-        profileService.getOrCreate(jwt);                 // đảm bảo người follow đã có hồ sơ
-        service.follow(CurrentUser.id(jwt), id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<ApiResponseFormat<Object>> follow(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        followService.follow(CurrentUser.id(jwt), id);
+        return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
     @DeleteMapping("/follow")
-    public ResponseEntity<Void> unfollow(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
-        service.unfollow(CurrentUser.id(jwt), id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<ApiResponseFormat<Object>> unfollow(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        followService.unfollow(CurrentUser.id(jwt), id);
+        return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
     @GetMapping("/followers")
-    public CursorPage<FollowUserResponse> followers(@PathVariable Long id,
-                                                    @RequestParam(required = false) Long cursor,
-                                                    @RequestParam(defaultValue = "20") int size) {
-        return service.followers(id, cursor, size);
+    public ResponseEntity<ApiResponseFormat<Object>> followers(@PathVariable Long id,
+                                                               @RequestParam(required = false) Long cursor,
+                                                               @RequestParam(defaultValue = "20") int size) {
+        return responseFactory.response(CoreErrorCode.SUCCESS, followService.followers(id, cursor, size));
     }
 
     @GetMapping("/following")
-    public CursorPage<FollowUserResponse> following(@PathVariable Long id,
-                                                    @RequestParam(required = false) Long cursor,
-                                                    @RequestParam(defaultValue = "20") int size) {
-        return service.following(id, cursor, size);
+    public ResponseEntity<ApiResponseFormat<Object>> following(@PathVariable Long id,
+                                                               @RequestParam(required = false) Long cursor,
+                                                               @RequestParam(defaultValue = "20") int size) {
+        return responseFactory.response(CoreErrorCode.SUCCESS, followService.following(id, cursor, size));
     }
 }

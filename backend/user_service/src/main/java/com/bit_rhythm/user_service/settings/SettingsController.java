@@ -1,35 +1,37 @@
 package com.bit_rhythm.user_service.settings;
 
+import com.bit_rhythm.core.dto.ApiResponseFormat;
+import com.bit_rhythm.core.exception.CoreErrorCode;
+import com.bit_rhythm.core.utils.ResponseFactory;
 import com.bit_rhythm.user_service.common.CurrentUser;
-import com.bit_rhythm.user_service.profile.ProfileService;
 import com.bit_rhythm.user_service.settings.dto.SettingsRequest;
-import com.bit_rhythm.user_service.settings.dto.SettingsResponse;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/users/me/settings")
+@RequiredArgsConstructor
 public class SettingsController {
 
-    private final SettingsService service;
-    private final ProfileService profileService;
-
-    public SettingsController(SettingsService service, ProfileService profileService) {
-        this.service = service;
-        this.profileService = profileService;
-    }
+    private final SettingsService settingsService;
+    private final ResponseFactory responseFactory;
 
     @GetMapping
-    public SettingsResponse get(@AuthenticationPrincipal Jwt jwt) {
-        profileService.getOrCreate(jwt);
-        return service.get(CurrentUser.id(jwt));
+    public ResponseEntity<ApiResponseFormat<Object>> get(@AuthenticationPrincipal Jwt jwt) {
+        return responseFactory.response(CoreErrorCode.SUCCESS, settingsService.get(CurrentUser.id(jwt)));
     }
 
     @PutMapping
-    public SettingsResponse update(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody SettingsRequest req) {
-        profileService.getOrCreate(jwt);
-        return service.update(CurrentUser.id(jwt), req);
+    public ResponseEntity<ApiResponseFormat<Object>> update(@AuthenticationPrincipal Jwt jwt,
+                                                            @Valid @RequestBody SettingsRequest request) {
+        return responseFactory.response(CoreErrorCode.SUCCESS, settingsService.update(CurrentUser.id(jwt), request));
     }
 }

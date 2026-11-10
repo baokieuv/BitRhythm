@@ -1,6 +1,7 @@
 package com.bit_rhythm.user_service.avatar.dto;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
 
-public record UploadUrlRequest(@NotBlank String contentType, @Positive long size) {}
+public record UploadUrlRequest(@NotBlank String contentType, @Min(1) long sizeBytes) {
+}

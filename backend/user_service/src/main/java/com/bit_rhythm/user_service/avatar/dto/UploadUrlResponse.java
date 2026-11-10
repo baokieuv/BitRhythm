@@ -1,3 +1,7 @@
 package com.bit_rhythm.user_service.avatar.dto;
 
-public record UploadUrlResponse(String uploadUrl, String key, String method, long expiresInSeconds) {}
+import java.time.Instant;
+
+/** The client PUTs the file to uploadUrl (with the same Content-Type), then calls confirm with key. */
+public record UploadUrlResponse(String uploadUrl, String key, Instant expiresAt) {
+}

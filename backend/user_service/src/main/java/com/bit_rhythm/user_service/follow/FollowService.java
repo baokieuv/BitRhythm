@@ -1,101 +1,47 @@
 package com.bit_rhythm.user_service.follow;
 
-import com.bit_rhythm.user_service.avatar.storage.StorageClient;
 import com.bit_rhythm.user_service.common.CursorPage;
-import com.bit_rhythm.user_service.common.exception.UserCode;
-import com.bit_rhythm.user_service.common.exception.UserException;
-import com.bit_rhythm.user_service.event.UserEventPublisher;
 import com.bit_rhythm.user_service.follow.dto.FollowUserResponse;
-import com.bit_rhythm.user_service.profile.ProfileRepository;
-import com.bit_rhythm.user_service.profile.UserProfile;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 public class FollowService {
 
-    private static final int MAX_SIZE = 50;
-
-    private final FollowRepository follows;
-    private final ProfileRepository profiles;
-    private final UserEventPublisher events;
-    private final StorageClient storage;
-
-    public FollowService(FollowRepository follows, ProfileRepository profiles,
-                         UserEventPublisher events, StorageClient storage) {
-        this.follows = follows;
-        this.profiles = profiles;
-        this.events = events;
-        this.storage = storage;
-    }
-
-    @Transactional
+    /**
+     * [S1] TODO(hint), ONE @Transactional method:
+     *  1. followerId == followeeId -> CANNOT_FOLLOW_SELF; the target must have a profile (PROFILE_NOT_FOUND). Note: a user who never
+     *     called this service has no profile yet; either accept the 404 or create profiles from an auth-service event.
+     *  2. [S2] blocked either way -> USER_BLOCKED.
+     *  3. already following -> do nothing (idempotent, no error, no second notification).
+     *  4. insert Follow; ProfileRepository.addFollowers(followee, +1) and addFollowing(follower, +1);
+     *  5. UserEventPublisher.publishNewFollower(...) writes to the outbox in this same transaction.
+     * Two requests at once: the unique key makes the second insert fail; catch DataIntegrityViolationException and treat it as "already following".
+     */
     public void follow(Long followerId, Long followeeId) {
-        if (followerId.equals(followeeId)) throw new UserException(UserCode.CANNOT_FOLLOW_SELF);
-        // [S2] if (blockService.isBlockedEitherWay(followerId, followeeId)) throw USER_BLOCKED
-
-        UserProfile follower = profiles.findById(followerId)
-                .orElseThrow(() -> new UserException(UserCode.PROFILE_NOT_FOUND));
-        UserProfile followee = profiles.findById(followeeId)
-                .orElseThrow(() -> new UserException(UserCode.PROFILE_NOT_FOUND));
-
-        if (follows.existsByFollowerIdAndFolloweeId(followerId, followeeId)) return; // idempotent
-
-        follows.save(new Follow(followerId, followeeId));
-        profiles.adjustFollowingCount(followerId, 1);
-        profiles.adjustFollowerCount(followeeId, 1);
-        events.publishNewFollower(follower, followee);
+        throw new UnsupportedOperationException("TODO");
     }
 
-    @Transactional
+    /** [S1] TODO(hint): FollowRepository.deletePair(...); adjust both counters (-1) only when it returned 1. No event. */
     public void unfollow(Long followerId, Long followeeId) {
-        int deleted = follows.deleteRelation(followerId, followeeId);
-        if (deleted > 0) {                       // chỉ trừ bộ đếm khi thật sự xóa được dòng
-            profiles.adjustFollowingCount(followerId, -1);
-            profiles.adjustFollowerCount(followeeId, -1);
-        }
+        throw new UnsupportedOperationException("TODO");
     }
 
-    @Transactional(readOnly = true)
-    public boolean isFollowing(Long a, Long b) {
-        return follows.existsByFollowerIdAndFolloweeId(a, b);
-    }
-
-    @Transactional(readOnly = true)
+    /**
+     * [S1] TODO(hint): cursor == null -> Long.MAX_VALUE; read size + 1 rows (size clamped to user.pagination.max-page-size);
+     * load the profiles of the followers in ONE query (findByUserIdIn); nextCursor = id of the last row returned when there is one more.
+     * [S2] hide HIDDEN/DELETED profiles and, for a PRIVATE profile, answer only to the owner or followers.
+     */
     public CursorPage<FollowUserResponse> followers(Long userId, Long cursor, int size) {
-        return page(follows.findFollowers(userId, normCursor(cursor), PageRequest.of(0, normSize(size) + 1)),
-                size, Follow::getFollowerId);
+        throw new UnsupportedOperationException("TODO");
     }
 
-    @Transactional(readOnly = true)
+    /** [S1] TODO(hint): same as followers, over findByFollowerIdAndIdLessThanOrderByIdDesc. */
     public CursorPage<FollowUserResponse> following(Long userId, Long cursor, int size) {
-        return page(follows.findFollowing(userId, normCursor(cursor), PageRequest.of(0, normSize(size) + 1)),
-                size, Follow::getFolloweeId);
+        throw new UnsupportedOperationException("TODO");
     }
 
-    private CursorPage<FollowUserResponse> page(List<Follow> rows, int size, Function<Follow, Long> userIdOf) {
-        int limit = normSize(size);
-        boolean hasMore = rows.size() > limit;
-        var pageRows = hasMore ? rows.subList(0, limit) : rows;
-
-        Map<Long, UserProfile> byId = profiles.findAllById(pageRows.stream().map(userIdOf).toList()).stream()
-                .collect(Collectors.toMap(UserProfile::getUserId, Function.identity()));
-
-        var items = pageRows.stream().map(userIdOf).map(byId::get)
-                .filter(p -> p != null)
-                .map(p -> new FollowUserResponse(p.getUserId(), p.getDisplayName(),
-                        storage.publicUrl(p.getAvatarKey()), p.isVerified()))
-                .toList();
-        Long next = hasMore ? pageRows.get(pageRows.size() - 1).getId() : null;
-        return new CursorPage<>(items, next);
+    /** [S1] TODO(hint): existsByFollowerIdAndFolloweeId; used by ProfileService.getPublic. */
+    public boolean isFollowing(Long followerId, Long followeeId) {
+        throw new UnsupportedOperationException("TODO");
     }
-
-    private static Long normCursor(Long c) { return c == null ? Long.MAX_VALUE : c; }
-    private static int normSize(int s) { return Math.max(1, Math.min(s, MAX_SIZE)); }
 }

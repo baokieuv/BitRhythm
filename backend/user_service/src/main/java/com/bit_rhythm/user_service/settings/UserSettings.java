@@ -1,31 +1,48 @@
 package com.bit_rhythm.user_service.settings;
 
+import com.bit_rhythm.core.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
+
+/** One row per user, same id as UserProfile (no JPA relation on purpose: just the id). */
 @Entity
 @Table(name = "user_settings")
-@Getter @Setter @NoArgsConstructor
-public class UserSettings {
+@Getter
+@Setter
+@NoArgsConstructor
+public class UserSettings extends BaseEntity {
 
     @Id
-    private Long userId;                       // cùng id với auth-service
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false, unique = true)
+    private Long id;
 
+    @Id
+    @Column(name = "user_id")
+    private Long userId;
+
+    /** "vi" | "en". notification-service uses it to choose the language of notifications. */
     @Column(nullable = false)
-    private String locale = "vi";              // "vi" | "en"
+    private String locale = "en";
 
     @Enumerated(EnumType.STRING)
     @Column(name = "profile_visibility", nullable = false)
     private ProfileVisibility visibility = ProfileVisibility.PUBLIC;
 
-    @Column(nullable = false)
+    @Column(name = "show_listening_activity", nullable = false)
     private boolean showListeningActivity = true;
 
-    public static UserSettings defaults(Long userId) {
-        var s = new UserSettings();
-        s.userId = userId;
-        return s;
+    public UserSettings(Long userId) {
+        this.userId = userId;
+    }
+
+    @PrePersist
+    @PreUpdate
+    void touch() {
+        updatedAt = Instant.now();
     }
 }

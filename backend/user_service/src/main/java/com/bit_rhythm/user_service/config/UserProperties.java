@@ -6,11 +6,26 @@ import java.time.Duration;
 import java.util.List;
 
 @ConfigurationProperties(prefix = "user")
-public record UserProperties(Avatar avatar, Minio minio, Topics topics) {
+public record UserProperties(
+        Avatar avatar,
+        Minio minio,
+        Topics topics,
+        Kafka kafka,
+        Pagination pagination
+) {
+    public record Avatar(String bucket, long maxBytes, List<String> allowedTypes, Duration presignTtl) {
+    }
 
-    public record Avatar(String bucket, long maxBytes, List<String> allowedTypes, Duration presignTtl) {}
+    /** endpoint: used by the server (stat, delete). publicEndpoint: the host a browser can reach; presigned URLs are signed with it. */
+    public record Minio(String endpoint, String publicEndpoint, String accessKey, String secretKey) {
+    }
 
-    public record Minio(String endpoint, String publicEndpoint, String accessKey, String secretKey) {}
+    public record Topics(String notification, String authEvents) {
+    }
 
-    public record Topics(String notification) {}
+    public record Kafka(int maxRetries, Duration initialBackoff, Duration maxBackoff) {
+    }
+
+    public record Pagination(int maxPageSize) {
+    }
 }

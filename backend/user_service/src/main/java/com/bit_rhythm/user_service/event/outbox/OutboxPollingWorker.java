@@ -1,38 +1,59 @@
 package com.bit_rhythm.user_service.event.outbox;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.bit_rhythm.user_service.config.UserProperties;
+import com.bit_rhythm.user_service.event.outbox.UserOutboxEntity;
+import com.bit_rhythm.user_service.event.outbox.UserOutboxRepository;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-/** Giữ giống auth-service. Value là String (StringSerializer), key là aggregateId. */
+@Slf4j
 @Component
+@AllArgsConstructor
 public class OutboxPollingWorker {
 
-    private static final Logger log = LoggerFactory.getLogger(OutboxPollingWorker.class);
+    private static final long SEND_TIMEOUT_SECONDS = 10;
 
-    private final UserOutboxRepository outbox;
-    private final KafkaTemplate<String, String> kafka;
+    private final UserOutboxRepository outboxRepository;
+    /** String values: the producer must use StringSerializer (spring.kafka.producer.value-serializer). */
+    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final UserProperties appProperties;
 
-    public OutboxPollingWorker(UserOutboxRepository outbox, KafkaTemplate<String, String> kafka) {
-        this.outbox = outbox;
-        this.kafka = kafka;
-    }
-
-    @Scheduled(fixedDelayString = "${user.outbox.poll-interval-ms:1000}")
+    @Scheduled(fixedDelay = 5000)
     @Transactional
-    public void poll() {
-        for (var e : outbox.findTop50ByStatusOrderByIdAsc(OutboxStatus.PENDING)) {
+    public void processOutboxEvents() {
+        List<UserOutboxEntity> events = outboxRepository.findAndLockUnpublishedEvents();
+
+        if (events.isEmpty()) {
+            return;
+        }
+
+        for (UserOutboxEntity event : events) {
             try {
-                kafka.send(e.getTopic(), e.getAggregateId(), e.getPayload()).get(5, TimeUnit.SECONDS);
-                e.markSent();
-            } catch (Exception ex) {
-                log.warn("Outbox send failed id={}, will retry: {}", e.getId(), ex.getMessage());
-                return; // giữ thứ tự, thử lại ở lần poll sau
+                // Key = aggregate id (the user): the events of one user stay in order on the same partition.
+                // The value is the JSON stored in the outbox row, sent as it is.
+                // A timeout, so an unreachable broker cannot hold this transaction (and its row locks) forever.
+                // If it times out but the message did arrive, the retry is a duplicate: notification-service
+                // ignores it (same eventId).
+                kafkaTemplate.send(appProperties.topics().notification(), event.getAggregateId(), event.getPayload())
+                        .get(SEND_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+                // Mark the event as processed
+                event.setIsProcessed(1);
+                outboxRepository.save(event);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("Outbox polling interrupted at event id={}", event.getEventId());
+                return;
+            } catch (Exception e) {
+                // Stays unprocessed and is picked up again by the next run; continue with the next event
+                log.error("Failed to publish outbox event id={}: {}", event.getEventId(), e.toString());
             }
         }
     }

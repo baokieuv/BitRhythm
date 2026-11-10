@@ -26,6 +26,6 @@ COPY --from=build /workspace/user_service/target/user_service-0.0.1-SNAPSHOT.jar
 RUN chown spring:spring /app/user-service.jar
 USER spring
 
-EXPOSE 8084
+EXPOSE 8082
 
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/user-service.jar"]

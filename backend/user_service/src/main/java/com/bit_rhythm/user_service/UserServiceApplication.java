@@ -4,7 +4,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
-@SpringBootApplication
+@SpringBootApplication(
+        scanBasePackages = {"com.bit_rhythm.user_service", "com.bit_rhythm.core"}
+)
 @ConfigurationPropertiesScan
 public class UserServiceApplication {
     public static void main(String[] args) {

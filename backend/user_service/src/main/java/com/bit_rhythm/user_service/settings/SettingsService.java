@@ -1,34 +1,24 @@
 package com.bit_rhythm.user_service.settings;
 
-import com.bit_rhythm.user_service.common.exception.UserCode;
-import com.bit_rhythm.user_service.common.exception.UserException;
 import com.bit_rhythm.user_service.settings.dto.SettingsRequest;
 import com.bit_rhythm.user_service.settings.dto.SettingsResponse;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SettingsService {
 
-    private final SettingsRepository settings;
-
-    public SettingsService(SettingsRepository settings) { this.settings = settings; }
-
-    @Transactional(readOnly = true)
+    /** [S1] TODO(hint): the row is created together with the profile (ProfileService.getOrCreate); if it is missing, create defaults. */
     public SettingsResponse get(Long userId) {
-        return SettingsResponse.from(find(userId));
+        throw new UnsupportedOperationException("TODO");
     }
 
-    @Transactional
-    public SettingsResponse update(Long userId, SettingsRequest req) {
-        var s = find(userId);
-        s.setLocale(req.locale());
-        s.setVisibility(req.visibility());
-        s.setShowListeningActivity(req.showListeningActivity());
-        return SettingsResponse.from(s);
+    /** [S1] TODO(hint): replace locale, visibility and showListeningActivity; save; map. */
+    public SettingsResponse update(Long userId, SettingsRequest request) {
+        throw new UnsupportedOperationException("TODO");
     }
 
-    private UserSettings find(Long userId) {
-        return settings.findById(userId).orElseThrow(() -> new UserException(UserCode.PROFILE_NOT_FOUND));
+    /** [S1] TODO(hint): used by UserEventPublisher to put the RECIPIENT's locale into notifications; default "en". */
+    public String localeOf(Long userId) {
+        throw new UnsupportedOperationException("TODO");
     }
 }

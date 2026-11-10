@@ -35,8 +35,8 @@ public class SecurityConfig {
                         .requestMatchers("/health/**", "/error").permitAll()
                         // links inside emails and provider callbacks carry no bearer token
                         .requestMatchers(HttpMethod.POST, "/webhooks/**").permitAll()   // verified by signature in the controller
-                        .requestMatchers("/internal/**").hasAuthority("TOKEN_SERVICE")  // + @PreAuthorize on scope
-                        .requestMatchers("/api/admin/**").hasAuthority("TOKEN_ACCESS")
+                        .requestMatchers("/api/notifications/internal/**").hasAuthority("TOKEN_SERVICE")  // + @PreAuthorize on scope
+                        .requestMatchers("/api/notifications/admin/**").hasAuthority("TOKEN_ACCESS")
                         .requestMatchers("/api/notifications/**").hasAuthority("TOKEN_ACCESS")
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(oauth -> oauth
