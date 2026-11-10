@@ -16,6 +16,8 @@ public interface ProfileRepository extends JpaRepository<UserProfile, Long> {
 
     Optional<UserProfile> findByUserIdAndIsDeleted(Long userId, Integer isDeleted);  // get mine, get public profile
 
+    boolean existsByUserIdAndIsDeleted(Long userId, Integer isDeleted);  // check if profile exists
+
     /**
      * Atomic counter updates: "SET x = x + :delta" runs inside the database, so two concurrent follows cannot
      * lose an update. delta is +1 or -1. Call them in the same transaction as the insert/delete in follows.

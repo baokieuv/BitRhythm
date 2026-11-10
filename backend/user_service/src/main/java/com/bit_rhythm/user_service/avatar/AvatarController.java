@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/users/me/avatar")
+@RequestMapping("/api/users/me/avatar")
 @RequiredArgsConstructor
 public class AvatarController {
 

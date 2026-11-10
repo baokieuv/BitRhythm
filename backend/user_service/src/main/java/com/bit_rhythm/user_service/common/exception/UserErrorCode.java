@@ -15,6 +15,7 @@ public enum UserErrorCode implements ApiResponseCode {
     AVATAR_TYPE_NOT_ALLOWED(false, "USER0004", "error.avatar_type_not_allowed", HttpStatus.BAD_REQUEST),
     AVATAR_TOO_LARGE(false, "USER0005", "error.avatar_too_large", HttpStatus.PAYLOAD_TOO_LARGE),
     AVATAR_NOT_UPLOADED(false, "USER0006", "error.avatar_not_uploaded", HttpStatus.UNPROCESSABLE_ENTITY),
+    AVATAR_INVALID(false, "USER0012", "error.avatar_invalid", HttpStatus.BAD_REQUEST),
 
     VERIFICATION_NOT_FOUND(false, "USER0007", "error.verification_not_found", HttpStatus.NOT_FOUND),
     VERIFICATION_ALREADY_PENDING(false, "USER0008", "error.verification_already_pending", HttpStatus.CONFLICT),

@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Primary;
  * Two MinIO clients, because the same MinIO is reached by two different addresses:
  *
  * <ul>
- *   <li><b>minioClient</b> (primary): the address of the server side, inside docker "http://minio:9000". Used for the
+ *   <li><b>minioClient</b> (primary): the address of the server side, inside docker "<a href="http://minio:9000">http://minio:9000</a>". Used for the
  *       calls user-service makes itself: statObject, removeObject.</li>
  *   <li><b>minioPublicClient</b>: the address a BROWSER can reach, e.g. "http://localhost:9000". Used ONLY to sign
  *       presigned upload URLs (getPresignedObjectUrl). The host is part of the signature, so a URL signed with

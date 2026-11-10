@@ -3,7 +3,6 @@ package com.bit_rhythm.user_service.settings;
 import com.bit_rhythm.core.common.CommonEnums;
 import com.bit_rhythm.user_service.common.exception.UserErrorCode;
 import com.bit_rhythm.user_service.common.exception.UserException;
-import com.bit_rhythm.user_service.profile.UserProfile;
 import com.bit_rhythm.user_service.settings.dto.SettingsRequest;
 import com.bit_rhythm.user_service.settings.dto.SettingsResponse;
 import lombok.RequiredArgsConstructor;
