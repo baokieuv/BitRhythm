@@ -8,10 +8,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface ProfileRepository extends JpaRepository<UserProfile, Long> {
 
     List<UserProfile> findByUserIdIn(Collection<Long> ids);   // summaries, follower lists
+
+    Optional<UserProfile> findByUserIdAndIsDeleted(Long userId, Integer isDeleted);  // get mine, get public profile
 
     /**
      * Atomic counter updates: "SET x = x + :delta" runs inside the database, so two concurrent follows cannot

@@ -1,24 +1,60 @@
 package com.bit_rhythm.user_service.settings;
 
+import com.bit_rhythm.core.common.CommonEnums;
+import com.bit_rhythm.user_service.common.exception.UserErrorCode;
+import com.bit_rhythm.user_service.common.exception.UserException;
+import com.bit_rhythm.user_service.profile.UserProfile;
 import com.bit_rhythm.user_service.settings.dto.SettingsRequest;
 import com.bit_rhythm.user_service.settings.dto.SettingsResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
+@RequiredArgsConstructor
 public class SettingsService {
 
-    /** [S1] TODO(hint): the row is created together with the profile (ProfileService.getOrCreate); if it is missing, create defaults. */
+    private final SettingsRepository settingsRepository;
+
     public SettingsResponse get(Long userId) {
-        throw new UnsupportedOperationException("TODO");
+
+        UserSettings settings = findActive(userId)
+                .orElseGet(() -> {
+                    UserSettings defaultSettings = new UserSettings();
+                    defaultSettings.setUserId(userId);
+                    defaultSettings.setLocale("en");
+                    defaultSettings.setVisibility(ProfileVisibility.PUBLIC);
+                    defaultSettings.setShowListeningActivity(true);
+                    return settingsRepository.save(defaultSettings);
+                });
+
+        return SettingsResponse.from(settings);
     }
 
-    /** [S1] TODO(hint): replace locale, visibility and showListeningActivity; save; map. */
     public SettingsResponse update(Long userId, SettingsRequest request) {
-        throw new UnsupportedOperationException("TODO");
+        UserSettings settings = findActive(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.PROFILE_NOT_FOUND));
+
+        settings.update(request);
+        UserSettings saved = settingsRepository.save(settings);
+
+        return SettingsResponse.from(saved);
     }
 
-    /** [S1] TODO(hint): used by UserEventPublisher to put the RECIPIENT's locale into notifications; default "en". */
+    /** used by UserEventPublisher to put the RECIPIENT's locale into notifications; default "en". */
     public String localeOf(Long userId) {
-        throw new UnsupportedOperationException("TODO");
+        UserSettings settings = findActive(userId)
+                .orElse(null);
+
+        if (settings == null) {
+            return "en";  // default locale
+        }
+
+        return settings.getLocale();
+    }
+
+    private Optional<UserSettings> findActive(Long userId) {
+        return settingsRepository.findByUserIdAndIsDeleted(userId, CommonEnums.DeletedStatus.NOT_DELETED.getCode());
     }
 }

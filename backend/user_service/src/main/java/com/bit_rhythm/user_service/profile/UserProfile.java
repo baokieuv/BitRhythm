@@ -27,7 +27,6 @@ public class UserProfile extends BaseEntity {
     @Column(name = "id", nullable = false, unique = true)
     private Long id;
 
-    @Id
     @Column(name = "user_id")
     private Long userId;
 
@@ -71,8 +70,9 @@ public class UserProfile extends BaseEntity {
         updatedAt = Instant.now();
     }
 
-    /** TODO(hint): change only displayName, bio and country (blank bio/country -> null); never the counters or status. */
     public void update(UpdateProfileRequest request) {
-        throw new UnsupportedOperationException("TODO: update displayName, bio, country");
+        this.displayName = request.displayName();
+        this.bio = request.bio();
+        this.country = request.country();
     }
 }

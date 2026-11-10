@@ -1,6 +1,7 @@
 package com.bit_rhythm.user_service.settings;
 
 import com.bit_rhythm.core.entity.BaseEntity;
+import com.bit_rhythm.user_service.settings.dto.SettingsRequest;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,7 +22,6 @@ public class UserSettings extends BaseEntity {
     @Column(name = "id", nullable = false, unique = true)
     private Long id;
 
-    @Id
     @Column(name = "user_id")
     private Long userId;
 
@@ -44,5 +44,11 @@ public class UserSettings extends BaseEntity {
     @PreUpdate
     void touch() {
         updatedAt = Instant.now();
+    }
+
+    public void update(SettingsRequest request) {
+        this.locale = request.locale();
+        this.visibility = request.visibility();
+        this.showListeningActivity = request.showListeningActivity();
     }
 }

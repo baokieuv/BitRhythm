@@ -1,0 +1,59 @@
+# user-service + its own database
+services:
+  user-service:
+    build:
+      context: ../backend
+      dockerfile: user_service/Dockerfile
+    image: bitrhythm/user-service:latest
+    container_name: bitrhythm_user_service
+    restart: unless-stopped
+    init: true
+    env_file:
+      - env/shared.env
+      - env/user.env
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    ports:
+      - "${USER_SERVICE_HOST_PORT:-8082}:8082"
+    depends_on:
+      user-database:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - user_network      # private: user-service <-> user-database
+      - service_network   # gateway / other services call it over HTTP (JWKS is fetched from auth-service here)
+      - common_network    # kafka, minio
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8082/health/ready > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  user-database:
+    image: mariadb:11.4
+    container_name: bitrhythm_user_database
+    restart: unless-stopped
+    env_file:
+      - env/user.env
+    ports:
+      - "${USER_DB_HOST_PORT:-3309}:3306"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - user_database_data:/var/lib/mysql
+    networks:
+      - user_network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+networks:
+  user_network:
+    driver: bridge
+
+volumes:
+  user_database_data:
