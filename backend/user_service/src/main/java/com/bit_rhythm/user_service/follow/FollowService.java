@@ -1,11 +1,31 @@
 package com.bit_rhythm.user_service.follow;
 
+import com.bit_rhythm.core.common.CommonEnums;
+import com.bit_rhythm.user_service.block.BlockRepository;
+import com.bit_rhythm.user_service.block.UserBlock;
 import com.bit_rhythm.user_service.common.CursorPage;
+import com.bit_rhythm.user_service.common.exception.UserErrorCode;
+import com.bit_rhythm.user_service.common.exception.UserException;
 import com.bit_rhythm.user_service.follow.dto.FollowUserResponse;
+import com.bit_rhythm.user_service.profile.ProfileRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.Objects;
+
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class FollowService {
+
+    private final FollowRepository followRepository;
+    private final BlockRepository blockRepository;
+    private final ProfileRepository profileRepository;
+    private final TransactionTemplate transactionTemplate;
 
     /**
      * [S1] TODO(hint), ONE @Transactional method:
@@ -18,12 +38,42 @@ public class FollowService {
      * Two requests at once: the unique key makes the second insert fail; catch DataIntegrityViolationException and treat it as "already following".
      */
     public void follow(Long followerId, Long followeeId) {
-        throw new UnsupportedOperationException("TODO");
+
+        if (Objects.equals(followerId, followeeId)) {
+            throw new UserException(UserErrorCode.CANNOT_FOLLOW_SELF);
+        }
+
+        profileRepository.findByUserIdAndIsDeleted(followeeId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+                .orElseThrow(() -> new UserException(UserErrorCode.PROFILE_NOT_FOUND));
+
+        if (blockRepository.existsEitherWay(followerId, followeeId)) {
+            throw new UserException(UserErrorCode.USER_BLOCKED);
+        }
+
+        if (followRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId)) {
+            return; // already following, do nothing
+        }
+
+        try {
+            transactionTemplate.executeWithoutResult(status -> {
+                followRepository.saveAndFlush(new Follow(followerId, followeeId));   // flush: a duplicate fails HERE
+                profileRepository.addFollowing(followerId, +1);
+                profileRepository.addFollowers(followeeId, +1);
+            });
+        } catch (DataIntegrityViolationException alreadyBlocked) {
+            // identical request won the race: nothing left to do
+        }
+
+        // publish event to outbox (in the same transaction)
     }
 
-    /** [S1] TODO(hint): FollowRepository.deletePair(...); adjust both counters (-1) only when it returned 1. No event. */
+    /** [S1] FollowRepository.deletePair(...); adjust both counters (-1) only when it returned 1. No event. */
+    @Transactional
     public void unfollow(Long followerId, Long followeeId) {
-        throw new UnsupportedOperationException("TODO");
+        if (followRepository.deletePair(followerId, followeeId) == 1) {
+            profileRepository.addFollowing(followerId, -1);
+            profileRepository.addFollowers(followeeId, -1);
+        }
     }
 
     /**
@@ -40,8 +90,8 @@ public class FollowService {
         throw new UnsupportedOperationException("TODO");
     }
 
-    /** [S1] TODO(hint): existsByFollowerIdAndFolloweeId; used by ProfileService.getPublic. */
+    /** existsByFollowerIdAndFolloweeId; used by ProfileService.getPublic. */
     public boolean isFollowing(Long followerId, Long followeeId) {
-        throw new UnsupportedOperationException("TODO");
+        return followRepository.existsByFollowerIdAndFolloweeId(followerId, followeeId);
     }
 }

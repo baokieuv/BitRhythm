@@ -1,5 +1,7 @@
 package com.bit_rhythm.user_service.profile;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -35,9 +37,8 @@ public interface ProfileRepository extends JpaRepository<UserProfile, Long> {
     // [S2] search by name. TODO(hint): prefix match uses idx_profile_name; add the cursor condition (user_id > :cursor)
     //      and exclude blocked users in the service. status is ACTIVE for normal searches.
     List<UserProfile> findByDisplayNameStartingWithIgnoreCaseAndStatusOrderByUserIdAsc(
-            String prefix, ProfileStatus status, org.springframework.data.domain.Pageable pageable);
+            String prefix, ProfileStatus status, Pageable pageable);
 
     // [S2] admin listing
-    org.springframework.data.domain.Page<UserProfile> findByStatus(
-            ProfileStatus status, org.springframework.data.domain.Pageable pageable);
+    Page<UserProfile> findByStatus(ProfileStatus status, Pageable pageable);
 }

@@ -21,7 +21,8 @@ public enum UserErrorCode implements ApiResponseCode {
     VERIFICATION_ALREADY_PENDING(false, "USER0008", "error.verification_already_pending", HttpStatus.CONFLICT),
     ALREADY_VERIFIED(false, "USER0009", "error.already_verified", HttpStatus.CONFLICT),
     AUTH_SERVICE_UNAVAILABLE(false, "USER0010", "error.auth_service_unavailable", HttpStatus.SERVICE_UNAVAILABLE),
-    USER_ERROR(false, "USER0011", "error.user_error", HttpStatus.BAD_REQUEST);
+    USER_ERROR(false, "USER0011", "error.user_error", HttpStatus.BAD_REQUEST),
+    CANNOT_BLOCK_SELF(false, "USER0013", "error.cannot_block_self", HttpStatus.BAD_REQUEST),;
 
     private final boolean success;
     private final String code;
