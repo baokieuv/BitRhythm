@@ -41,4 +41,15 @@ public interface ProfileRepository extends JpaRepository<UserProfile, Long> {
 
     // [S2] admin listing
     Page<UserProfile> findByStatus(ProfileStatus status, Pageable pageable);
+
+    @Query("SELECT p FROM UserProfile p " +
+            "WHERE p.displayName LIKE :prefix% " +
+            "AND p.status = :status " +
+            "AND p.userId > :cursor " +
+            "AND p.isDeleted = :isDeleted " +
+            "ORDER BY p.userId ASC")
+    List<UserProfile> searchByNamePrefix(
+            @Param("prefix") String prefix, @Param("status") ProfileStatus status,
+            @Param("isDeleted") Integer isDeleted, @Param("cursor") Long cursor,
+            @Param("pageable") Pageable pageable);
 }

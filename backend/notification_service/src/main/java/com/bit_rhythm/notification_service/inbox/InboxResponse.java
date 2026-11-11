@@ -3,14 +3,13 @@ package com.bit_rhythm.notification_service.inbox;
 import com.bit_rhythm.notification_service.core.NotificationType;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 public record InboxResponse(
         Long id,
         NotificationType type,
         String title,
         String body,
-        LocalDateTime readAt,
+        Instant readAt,
         Instant createdAt
 ) {
     public static InboxResponse from(InboxNotification n) {

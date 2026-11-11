@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Slf4j
 @Component
@@ -23,7 +23,7 @@ public class RetentionJob {
     @Scheduled(cron = "${notification.retention.cron:0 30 3 * * *}")
     @Transactional
     public void purge() {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         int logs = logRepository.deleteOlderThan(now.minus(properties.retention().log()));
         int inbox = inboxRepository.deleteOlderThan(now.minus(properties.retention().inbox()));
         log.info("Retention: deleted {} log rows and {} inbox items", logs, inbox);

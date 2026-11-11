@@ -8,7 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -51,12 +51,12 @@ public class InboxService {
 
     @Transactional
     public void markRead(Long userId, Long id) {
-        inboxRepository.markRead(id, userId, LocalDateTime.now());
+        inboxRepository.markRead(id, userId, Instant.now());
     }
 
     @Transactional
     public void markAllRead(Long userId) {
-        inboxRepository.markAllRead(userId, LocalDateTime.now());
+        inboxRepository.markAllRead(userId, Instant.now());
     }
 
     @Transactional

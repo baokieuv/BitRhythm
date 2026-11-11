@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public interface InboxRepository extends JpaRepository<InboxNotification, Long> {
@@ -21,11 +21,11 @@ public interface InboxRepository extends JpaRepository<InboxNotification, Long> 
 
     @Modifying
     @Query("UPDATE InboxNotification n SET n.readAt = :now WHERE n.id = :id AND n.userId = :userId AND n.readAt IS NULL")
-    int markRead(@Param("id") Long id, @Param("userId") Long userId, @Param("now") LocalDateTime now);
+    int markRead(@Param("id") Long id, @Param("userId") Long userId, @Param("now") Instant now);
 
     @Modifying
     @Query("UPDATE InboxNotification n SET n.readAt = :now WHERE n.userId = :userId AND n.readAt IS NULL")
-    int markAllRead(@Param("userId") Long userId, @Param("now") LocalDateTime now);
+    int markAllRead(@Param("userId") Long userId, @Param("now") Instant now);
 
     @Modifying
     @Query("DELETE FROM InboxNotification n WHERE n.id = :id AND n.userId = :userId")
@@ -33,5 +33,5 @@ public interface InboxRepository extends JpaRepository<InboxNotification, Long> 
 
     @Modifying
     @Query("DELETE FROM InboxNotification n WHERE n.createdAt < :threshold")
-    int deleteOlderThan(@Param("threshold") LocalDateTime threshold);
+    int deleteOlderThan(@Param("threshold") Instant threshold);
 }

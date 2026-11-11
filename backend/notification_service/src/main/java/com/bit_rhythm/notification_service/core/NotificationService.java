@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -77,7 +77,7 @@ public class NotificationService {
             entry.setStatus(DeliveryStatus.SENT);
             entry.setProvider(result.provider());
             entry.setProviderMessageId(result.providerMessageId());
-            entry.setSentAt(LocalDateTime.now());
+            entry.setSentAt(Instant.now());
             entry.setErrorCode(null);
             entry.setErrorMessage(null);
             entry.setPayload(null);   // delivered: the one-time links and the address are no longer needed

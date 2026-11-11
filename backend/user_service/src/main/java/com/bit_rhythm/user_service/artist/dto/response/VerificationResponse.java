@@ -4,7 +4,6 @@ import com.bit_rhythm.user_service.artist.ArtistVerificationRequest;
 import com.bit_rhythm.user_service.artist.VerificationStatus;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 public record VerificationResponse(
         Long id,

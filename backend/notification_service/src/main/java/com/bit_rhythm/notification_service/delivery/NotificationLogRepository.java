@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 
 public interface NotificationLogRepository extends JpaRepository<NotificationLog, Long> {
@@ -30,5 +30,5 @@ public interface NotificationLogRepository extends JpaRepository<NotificationLog
 
     @Modifying
     @Query("DELETE FROM NotificationLog l WHERE l.createdAt < :threshold")
-    int deleteOlderThan(@Param("threshold") LocalDateTime threshold);
+    int deleteOlderThan(@Param("threshold") Instant threshold);
 }

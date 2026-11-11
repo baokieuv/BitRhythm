@@ -3,7 +3,7 @@ package com.bit_rhythm.notification_service.delivery;
 import com.bit_rhythm.notification_service.channel.Channel;
 import com.bit_rhythm.notification_service.core.NotificationType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /** What an admin sees of a delivery. The stored payload (links, email address) is deliberately NOT included. */
 public record DeliveryLogResponse(
@@ -19,8 +19,8 @@ public record DeliveryLogResponse(
         String providerMessageId,
         String errorCode,
         String errorMessage,
-        LocalDateTime createdAt,
-        LocalDateTime sentAt,
+        Instant createdAt,
+        Instant sentAt,
         boolean resendable
 ) {
     public static DeliveryLogResponse from(NotificationLog log) {

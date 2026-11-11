@@ -1,5 +1,6 @@
 package com.bit_rhythm.notification_service.delivery;
 
+import com.bit_rhythm.core.entity.BaseEntity;
 import com.bit_rhythm.notification_service.channel.Channel;
 import com.bit_rhythm.notification_service.core.NotificationType;
 import jakarta.persistence.Column;
@@ -17,7 +18,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /** One row per (eventId, channel). The unique key on those two columns is the idempotency guard. */
 @Entity
@@ -27,7 +28,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class NotificationLog {
+public class NotificationLog extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -72,16 +73,13 @@ public class NotificationLog {
     @Column(columnDefinition = "longtext")
     private String payload;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
     @Column(name = "sent_at")
-    private LocalDateTime sentAt;
+    private Instant sentAt;
 
     @PrePersist
     void onCreate() {
         if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+            createdAt = Instant.now();
         }
     }
 }

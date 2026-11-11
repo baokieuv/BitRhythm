@@ -1,7 +1,7 @@
 package com.bit_rhythm.user_service.follow.dto;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /** A row of the followers / following lists. */
-public record FollowUserResponse(Long userId, String displayName, String avatarUrl, boolean verified, LocalDateTime followedAt) {
+public record FollowUserResponse(Long userId, String displayName, String avatarUrl, boolean verified, Instant followedAt) {
 }
