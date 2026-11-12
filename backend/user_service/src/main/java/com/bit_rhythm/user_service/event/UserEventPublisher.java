@@ -24,7 +24,6 @@ public class UserEventPublisher {
 
     private static final int EVENT_VERSION = 1;
     private static final String SOURCE = "user-service";
-    private static final String NEW_FOLLOWER = "NEW_FOLLOWER";
 
     private final UserOutboxRepository outboxRepository;
 
@@ -44,7 +43,7 @@ public class UserEventPublisher {
 
         NotificationEvent event = new NotificationEvent(
                 "follow:" + follower.getUserId() + ":" + followeeId,
-                NEW_FOLLOWER,
+                NotificationEventType.NEW_FOLLOWER.name(),
                 EVENT_VERSION,
                 Instant.now(),
                 new NotificationEvent.Recipient(followeeId, null, followeeLocale),
@@ -57,11 +56,42 @@ public class UserEventPublisher {
                     null,                       // generated id
                     "User",                     // aggregate type
                     followeeId.toString(),      // aggregate id: events of one recipient stay in order
-                    NEW_FOLLOWER,
+                    NotificationEventType.NEW_FOLLOWER.name(),
                     payload,
                     0,                          // not published yet
                     LocalDateTime.now()));
-            log.info("Saved {} event {} to outbox", NEW_FOLLOWER, event.eventId());
+            log.info("Saved {} event {} to outbox", NotificationEventType.NEW_FOLLOWER.name(), event.eventId());
+        } catch (Exception ex) {
+            throw new IllegalStateException("Failed to serialize or save the notification event to the outbox", ex);
+        }
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishArtistVerificationResult(UserProfile user, String result, String note) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("result", result);
+        data.put("note", note);
+
+        NotificationEvent event = new NotificationEvent(
+                "artist_verification:" + Instant.now().toEpochMilli() + ":" + user.getUserId(),
+                NotificationEventType.ARTIST_VERIFICATION_RESULT.name(),
+                EVENT_VERSION,
+                Instant.now(),
+                new NotificationEvent.Recipient(user.getUserId(), user.getEmail(), null),
+                data,
+                new NotificationEvent.Metadata(SOURCE, MDC.get("correlationId")));
+
+        try {
+            String payload = EventSerializer.serialize(event);
+            outboxRepository.save(new UserOutboxEntity(
+                    null,                       // generated id
+                    "User",                     // aggregate type
+                    user.getUserId().toString(),          // aggregate id: events of one recipient stay in order
+                    NotificationEventType.ARTIST_VERIFICATION_RESULT.name(),
+                    payload,
+                    0,                          // not published yet
+                    LocalDateTime.now()));
+            log.info("Saved ARTIST_VERIFICATION_RESULT event {} to outbox", event.eventId());
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to serialize or save the notification event to the outbox", ex);
         }

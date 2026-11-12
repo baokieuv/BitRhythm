@@ -117,8 +117,7 @@ public class ProfileService {
         return wanted.stream()
                 .map(byId::get)
                 .filter(Objects::nonNull)
-                .map(profile -> new UserSummary(profile.getUserId(), profile.getDisplayName(),
-                        storageClient.publicUrl(profile.getAvatarKey()), profile.isVerified()))
+                .map(profile -> UserSummary.from(profile, storageClient.publicUrl(profile.getAvatarKey())))
                 .toList();
     }
 
@@ -134,7 +133,7 @@ public class ProfileService {
     private UserProfile createProfile(Long userId, String email) {
         try {
             return transactionTemplate.execute(status -> {
-                UserProfile created = profileRepository.saveAndFlush(new UserProfile(userId, defaultDisplayName(email, userId)));
+                UserProfile created = profileRepository.saveAndFlush(new UserProfile(userId, defaultDisplayName(email, userId), email));
                 settingsRepository.saveAndFlush(new UserSettings(userId));
                 return created;
             });

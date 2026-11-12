@@ -1,44 +1,123 @@
 package com.bit_rhythm.user_service.artist;
 
+import com.bit_rhythm.core.common.CommonEnums;
 import com.bit_rhythm.user_service.artist.dto.response.VerificationResponse;
+import com.bit_rhythm.user_service.common.exception.UserErrorCode;
+import com.bit_rhythm.user_service.common.exception.UserException;
+import com.bit_rhythm.user_service.event.UserEventPublisher;
+import com.bit_rhythm.user_service.profile.ProfileRepository;
+import com.bit_rhythm.user_service.profile.UserProfile;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Instant;
 import java.util.List;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class ArtistVerificationService {
 
-    /**
-     * [S2] TODO(hint): the profile must exist; already verified -> ALREADY_VERIFIED; existsByUserIdAndStatus(PENDING) ->
-     * VERIFICATION_ALREADY_PENDING (there is no partial unique index in MariaDB: check inside the transaction); save PENDING.
-     */
+    private final VerificationRepository verificationRepository;
+    private final ProfileRepository profileRepository;
+    private final UserEventPublisher eventPublisher;
+    private final AuthClient authClient;
+    private final TransactionTemplate transactionTemplate;
+
+    /** Submit a new verification request for the user. */
     public VerificationResponse submit(Long userId, String message) {
-        throw new UnsupportedOperationException("TODO");
+
+        if (profileRepository.existsByUserIdAndIsDeleted(userId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
+            throw new UserException(UserErrorCode.PROFILE_NOT_FOUND);
+        }
+
+        if (verificationRepository.existsByUserIdAndStatus(userId, VerificationStatus.PENDING)) {
+            throw new UserException(UserErrorCode.VERIFICATION_ALREADY_PENDING);
+        }
+
+        if (verificationRepository.existsByUserIdAndStatus(userId, VerificationStatus.APPROVED)) {
+            throw new UserException(UserErrorCode.ALREADY_VERIFIED);
+        }
+
+        ArtistVerificationRequest request = new ArtistVerificationRequest(userId, message);
+
+        return VerificationResponse.from(verificationRepository.save(request));
     }
 
-    /** [S2] TODO(hint): latest request of the user, VERIFICATION_NOT_FOUND when there is none. */
+    /** Get the latest verification request for the user. */
     public VerificationResponse mine(Long userId) {
-        throw new UnsupportedOperationException("TODO");
+
+        if (profileRepository.existsByUserIdAndIsDeleted(userId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
+            throw new UserException(UserErrorCode.PROFILE_NOT_FOUND);
+        }
+
+        ArtistVerificationRequest request = verificationRepository.findFirstByUserIdOrderByIdDesc(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.VERIFICATION_NOT_FOUND));
+
+        return VerificationResponse.from(request);
     }
 
-    /** [S2] TODO(hint): PENDING requests, oldest first, page size <= 100. */
+    /** Get all pending verification requests. */
     public List<VerificationResponse> pending(int size) {
-        throw new UnsupportedOperationException("TODO");
+        List<ArtistVerificationRequest> request = verificationRepository
+                .findByStatusOrderByIdAsc(VerificationStatus.PENDING, Pageable.ofSize(size));
+
+        return request.stream().map(VerificationResponse::from).toList();
     }
 
-    /**
-     * [S2] TODO(hint): the request must be PENDING (idempotent: APPROVED -> return it as it is). Order matters:
-     *  1. AuthClient.grantRole(userId, "ARTIST") FIRST (idempotent, safe to repeat after a failure);
-     *  2. then in one transaction: request APPROVED + reviewedBy/reviewedAt/note, profile.verified = true;
-     *  3. then an outbox event for notification-service (add ARTIST_VERIFICATION_APPROVED to its NotificationType + templates).
-     * If step 2 fails after step 1, the admin simply clicks approve again.
-     */
+    /** Approve a verification request. */
     public VerificationResponse approve(Long requestId, Long adminId, String note) {
-        throw new UnsupportedOperationException("TODO");
+
+        ArtistVerificationRequest request = verificationRepository.findById(requestId)
+                .orElseThrow(() -> new UserException(UserErrorCode.VERIFICATION_NOT_FOUND));
+
+        if (request.getStatus() == VerificationStatus.APPROVED) {
+            return VerificationResponse.from(request);
+        }
+
+        transactionTemplate.executeWithoutResult(status -> {
+            request.setStatus(VerificationStatus.APPROVED);
+            request.setReviewedBy(adminId);
+            request.setReviewedAt(Instant.now());
+            request.setReviewNote(note);
+            verificationRepository.save(request);
+
+            UserProfile profile = profileRepository.findByUserIdAndIsDeleted(request.getUserId(), CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+                    .orElseThrow(() -> new UserException(UserErrorCode.PROFILE_NOT_FOUND));
+            profile.setVerified(true);
+            profileRepository.save(profile);
+
+            authClient.grantRole(profile.getUserId(), "ARTIST");
+
+            eventPublisher.publishArtistVerificationResult(profile, request.getStatus().name(), request.getReviewNote());
+        });
+
+        return VerificationResponse.from(request);
     }
 
-    /** [S2] TODO(hint): PENDING -> REJECTED with note; outbox event ARTIST_VERIFICATION_REJECTED (new NotificationType). */
+    /** Reject a verification request. */
     public VerificationResponse reject(Long requestId, Long adminId, String note) {
-        throw new UnsupportedOperationException("TODO");
+
+        ArtistVerificationRequest request = verificationRepository.findById(requestId)
+                .orElseThrow(() -> new UserException(UserErrorCode.VERIFICATION_NOT_FOUND));
+
+        UserProfile profile = profileRepository.findByUserIdAndIsDeleted(request.getUserId(), CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+                .orElseThrow(() -> new UserException(UserErrorCode.PROFILE_NOT_FOUND));
+
+        request.setStatus(VerificationStatus.REJECTED);
+        request.setReviewedBy(adminId);
+        request.setReviewedAt(Instant.now());
+        request.setReviewNote(note);
+
+        transactionTemplate.executeWithoutResult(status -> {
+            verificationRepository.save(request);
+
+            eventPublisher.publishArtistVerificationResult(profile, request.getStatus().name(), request.getReviewNote());
+        });
+
+        return VerificationResponse.from(request);
     }
 }

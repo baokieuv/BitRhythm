@@ -1,31 +1,162 @@
 package com.bit_rhythm.user_service.lifecycle;
 
+import com.bit_rhythm.user_service.avatar.storage.StorageClient;
+import com.bit_rhythm.user_service.block.BlockRepository;
+import com.bit_rhythm.user_service.follow.Follow;
+import com.bit_rhythm.user_service.follow.FollowRepository;
+import com.bit_rhythm.user_service.profile.ProfileRepository;
+import com.bit_rhythm.user_service.profile.ProfileStatus;
+import com.bit_rhythm.user_service.profile.UserProfile;
+import com.bit_rhythm.user_service.settings.SettingsRepository;
+import com.bit_rhythm.user_service.settings.UserSettings;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.Set;
+
+/** [S2] Keeps this service in step with the accounts of auth-service. */
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class AccountLifecycleService {
 
+    static final String USER_REGISTERED = "USER_REGISTERED";
+    static final String USER_DISABLED = "USER_DISABLED";
+    static final String USER_DELETED = "USER_DELETED";
+    private static final Set<String> HANDLED = Set.of(USER_REGISTERED, USER_DISABLED, USER_DELETED);
+
+    private static final String DELETED_DISPLAY_NAME = "Deleted user";
+    private static final int MAX_DISPLAY_NAME = 100;
+
+    private final ProcessedEventRepository processedEventRepository;
+    private final ProfileRepository profileRepository;
+    private final SettingsRepository settingsRepository;
+    private final FollowRepository followRepository;
+    private final BlockRepository blockRepository;
+    private final StorageClient storageClient;
+
     /**
-     * [S2] TODO(hint), one @Transactional method:
-     *  1. if processed_events already has eventId -> return (duplicate); otherwise insert it FIRST so a crash re-runs everything;
-     *  2. USER_DELETED -> onUserDeleted, USER_DISABLED -> onUserDisabled, anything else -> ignore.
+     * ONE transaction per event. The processed marker is inserted FIRST, in the same transaction as the work: if the work
+     * fails, the marker is rolled back with it and the retry starts again; if the event is delivered twice, the second
+     * delivery finds the marker and stops. Unknown event types are ignored without a marker (nothing to remember).
      */
-    public void handle(String eventId, String eventType, Long userId) {
-        throw new UnsupportedOperationException("TODO");
+    @Transactional
+    public void handle(AuthEvent event) {
+        if (!HANDLED.contains(event.eventType())) {
+            log.debug("Ignoring auth event type {}", event.eventType());
+            return;
+        }
+        if (processedEventRepository.existsById(event.eventId())) {
+            log.info("Auth event {} already handled, skipping", event.eventId());
+            return;
+        }
+        processedEventRepository.saveAndFlush(new ProcessedEvent(event.eventId()));
+
+        switch (event.eventType()) {
+            case USER_REGISTERED -> onUserRegistered(event);
+            case USER_DISABLED -> onUserDisabled(event.userId());
+            case USER_DELETED -> onUserDeleted(event.userId());
+            default -> { }   // unreachable: HANDLED was checked above
+        }
     }
 
     /**
-     * [S2] TODO(hint): anonymize the profile (status DELETED, displayName "Deleted user", bio/country/avatarKey null), delete the avatar
-     * object from MinIO AFTER the commit, and remove follows + blocks of the user. Before deleting the follows, correct the counters
-     * of the OTHER users: for every row where the user is the follower, addFollowers(followee, -1); where the user is the followee,
-     * addFollowing(follower, -1) (FollowRepository.findByFollowerId / findByFolloweeId, then deleteAllOf).
+     * A user was created in auth-service: create the profile and the default settings, so the user can be followed and found
+     * before ever calling this service. Idempotent: if the user called the API first, ProfileService.getOrCreate already made
+     * the profile and only the missing parts are added. If both happen at the same instant the insert fails on the primary key,
+     * the transaction rolls back and Kafka retries the event, which then finds the profile.
+     */
+    public void onUserRegistered(AuthEvent event) {
+        Long userId = event.userId();
+        if (!profileRepository.existsById(userId)) {
+            profileRepository.saveAndFlush(new UserProfile(userId, displayNameOf(event), event.email()));
+        }
+        if (!settingsRepository.existsById(userId)) {
+            settingsRepository.save(new UserSettings(userId));
+        }
+    }
+
+    /** Disabled accounts are hidden, not erased: status HIDDEN. A missing profile (never created) or a deleted one is left alone. */
+    public void onUserDisabled(Long userId) {
+        profileRepository.findById(userId)
+                .filter(profile -> profile.getStatus() == ProfileStatus.ACTIVE)
+                .ifPresent(profile -> {
+                    profile.setStatus(ProfileStatus.HIDDEN);
+                    profileRepository.save(profile);
+                });
+    }
+
+    /**
+     * Account deleted: anonymize the profile, remove the follows and blocks, delete the settings and, AFTER the commit, the avatar
+     * object. The counters of the OTHER users are corrected first (once the rows are gone nobody could tell whom to correct).
      */
     public void onUserDeleted(Long userId) {
-        throw new UnsupportedOperationException("TODO");
+        for (Follow follow : followRepository.findByFollowerId(userId)) {        // the user followed them
+            profileRepository.addFollowers(follow.getFolloweeId(), -1);
+        }
+        for (Follow follow : followRepository.findByFolloweeId(userId)) {        // they followed the user
+            profileRepository.addFollowing(follow.getFollowerId(), -1);
+        }
+        followRepository.deleteAllOf(userId);
+        blockRepository.deleteAllOf(userId);
+
+        // read the profile AFTER the bulk updates above (they clear the persistence context)
+        profileRepository.findById(userId).ifPresent(profile -> {
+            String avatarKey = profile.getAvatarKey();
+            profile.setStatus(ProfileStatus.DELETED);
+            profile.setDisplayName(DELETED_DISPLAY_NAME);
+            profile.setBio(null);
+            profile.setCountry(null);
+            profile.setAvatarKey(null);
+            profile.setVerified(false);
+            profile.setFollowerCount(0);
+            profile.setFollowingCount(0);
+            profileRepository.save(profile);
+            deleteAvatarAfterCommit(avatarKey);
+        });
+        settingsRepository.deleteById(userId);
     }
 
-    /** [S2] TODO(hint): disabled accounts are hidden, not erased: status HIDDEN; reactivation (if you ever add it) sets ACTIVE again. */
-    public void onUserDisabled(Long userId) {
-        throw new UnsupportedOperationException("TODO");
+    // ------------------------------------------------------------------ internals
+
+    /** The username chosen at registration; otherwise the part of the email before "@"; otherwise "user{id}". */
+    private static String displayNameOf(AuthEvent event) {
+        String name = event.username() == null ? "" : event.username().trim();
+        if (name.isEmpty() && event.email() != null) {
+            int at = event.email().indexOf('@');
+            name = (at > 0 ? event.email().substring(0, at) : event.email()).trim();
+        }
+        if (name.isEmpty()) {
+            return "user" + event.userId();
+        }
+        return name.length() <= MAX_DISPLAY_NAME ? name : name.substring(0, MAX_DISPLAY_NAME);
+    }
+
+    /** The object store is not transactional: delete only once the database change is committed, and never fail the event over it. */
+    private void deleteAvatarAfterCommit(String key) {
+        if (key == null) {
+            return;
+        }
+        Runnable delete = () -> {
+            try {
+                storageClient.delete(key);
+            } catch (RuntimeException e) {
+                log.warn("Could not delete avatar object {}: {}", key, e.toString());   // an orphan file is harmless
+            }
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    delete.run();
+                }
+            });
+        } else {
+            delete.run();
+        }
     }
 }

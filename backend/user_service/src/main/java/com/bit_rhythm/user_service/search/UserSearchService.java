@@ -71,8 +71,7 @@ public class UserSearchService {
                 if (profile.getUserId().equals(viewerId) || hidden.contains(profile.getUserId())) {
                     continue;
                 }
-                found.add(new UserSummary(profile.getUserId(), profile.getDisplayName(),
-                        storageClient.publicUrl(profile.getAvatarKey()), profile.isVerified()));
+                found.add(UserSummary.from(profile, storageClient.publicUrl(profile.getAvatarKey())));
             }
             mayHaveMore = batch.size() == limit;   // a full batch may be followed by more rows
         }

@@ -32,6 +32,9 @@ public class UserProfile extends BaseEntity {
     @Column(name = "display_name", nullable = false)
     private String displayName;
 
+    @Column(name = "email")
+    private String email;
+
     private String bio;
 
     private String country;   // ISO 3166-1 alpha-2
@@ -53,9 +56,10 @@ public class UserProfile extends BaseEntity {
     @Column(name = "following_count", nullable = false)
     private long followingCount;
 
-    public UserProfile(Long userId, String displayName) {
+    public UserProfile(Long userId, String displayName, String email) {
         this.userId = userId;
         this.displayName = displayName;
+        this.email = email;
     }
 
     @PrePersist
