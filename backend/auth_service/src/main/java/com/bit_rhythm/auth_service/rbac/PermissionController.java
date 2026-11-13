@@ -14,14 +14,14 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/permissions")
+@RequestMapping("/api/auth/permissions")
 public class PermissionController {
 
     private final ResponseFactory responseFactory;
     private final RbacService rbacService;
 
     @PostMapping
-    @PreAuthorize("hasAuthority('write:permissions')")
+    @PreAuthorize("hasAuthority('write:admin:permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> createPermission(
             @Valid @RequestBody CreatePermissionRequest request
     ) {
@@ -29,7 +29,7 @@ public class PermissionController {
     }
 
     @PostMapping("/search")
-    @PreAuthorize("hasAuthority('read:permissions')")
+    @PreAuthorize("hasAuthority('read:admin:permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> getAllPermissions(
             @Valid @RequestBody PermissionSearchRequest request
     ) {
@@ -37,13 +37,13 @@ public class PermissionController {
     }
 
     @GetMapping("/{permissionId}")
-    @PreAuthorize("hasAuthority('read:permissions')")
+    @PreAuthorize("hasAuthority('read:admin:permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> getPermissionById(@PathVariable Long permissionId) {
         return responseFactory.response(CoreErrorCode.SUCCESS, rbacService.getPermissionById(permissionId));
     }
 
     @PutMapping("/{permissionId}")
-    @PreAuthorize("hasAuthority('write:permissions')")
+    @PreAuthorize("hasAuthority('write:admin:permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> updatePermission(
             @PathVariable Long permissionId,
             @Valid @RequestBody UpdatePermissionRequest request
@@ -52,7 +52,7 @@ public class PermissionController {
     }
 
     @DeleteMapping("/{permissionId}")
-    @PreAuthorize("hasAuthority('delete:permissions')")
+    @PreAuthorize("hasAuthority('delete:admin:permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> deletePermission(@PathVariable Long permissionId) {
         rbacService.deletePermission(permissionId);
         return responseFactory.response(CoreErrorCode.SUCCESS, null);

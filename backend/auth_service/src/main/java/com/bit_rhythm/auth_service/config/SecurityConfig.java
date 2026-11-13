@@ -73,16 +73,15 @@ public class SecurityConfig {
                                 "/api/auth/logout",
                                 // OAuth2 endpoints authenticate the calling service themselves
                                 // (client_id/client_secret), so they must not require a bearer token.
-                                "/api/token",
-                                "/api/token/introspect").permitAll()
+                                "/api/auth/token",
+                                "/api/auth/token/introspect").permitAll()
                         .requestMatchers(HttpMethod.GET, "/.well-known/jwks.json").permitAll()
                         .requestMatchers("/health/**", "/error").permitAll()
                         // --- user tokens only -------------------------------------------------
-                        .requestMatchers("/api/auth/me", "/api/auth/change-password", "/api/auth/logout-all")
-                        .hasAuthority(USER_TOKEN)
+                        .requestMatchers("/api/auth/**").hasAuthority(USER_TOKEN)
                         // --- service tokens only ----------------------------------------------
-                        // Add fine-grained checks per endpoint, e.g. @PreAuthorize("hasAuthority('SCOPE_users:read')").
-                        .requestMatchers("/api/auth/internal/**").hasAuthority(SERVICE_TOKEN)
+                        // Add fine-grained checks per endpoint, e.g. @PreAuthorize("hasAuthority('users:read')").
+                        .requestMatchers("/internal/**").hasAuthority(SERVICE_TOKEN)
                         // --- everything else (RBAC/admin APIs, ...): user tokens only ---------
                         // Safe default: a service token cannot reach an endpoint unless it is listed above.
                         .anyRequest().hasAuthority(USER_TOKEN))

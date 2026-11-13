@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/roles")
+@RequestMapping("/api/auth/roles")
 public class RoleController {
 
     private final ResponseFactory responseFactory;
@@ -20,7 +20,7 @@ public class RoleController {
      private final RbacService rbacService;
 
     @PostMapping
-    @PreAuthorize("hasAuthority('write:roles')")
+    @PreAuthorize("hasAuthority('write:admin:roles')")
     public ResponseEntity<ApiResponseFormat<Object>> createRole(
             @Valid @RequestBody CreateRoleRequest request
     ) {
@@ -28,7 +28,7 @@ public class RoleController {
     }
 
     @PostMapping("/search")
-    @PreAuthorize("hasAuthority('read:roles')")
+    @PreAuthorize("hasAuthority('read:admin:roles')")
     public ResponseEntity<ApiResponseFormat<Object>> getAllRoles(
             @Valid @RequestBody RoleSearchRequest request) {
 
@@ -36,14 +36,14 @@ public class RoleController {
     }
 
     @GetMapping("/{roleId}")
-    @PreAuthorize("hasAuthority('read:roles')")
+    @PreAuthorize("hasAuthority('read:admin:roles')")
     public ResponseEntity<ApiResponseFormat<Object>> getRoleById(@PathVariable Long roleId) {
 
         return responseFactory.response(CoreErrorCode.SUCCESS, rbacService.getRoleById(roleId));
     }
 
     @PutMapping("/{roleId}")
-    @PreAuthorize("hasAuthority('write:roles')")
+    @PreAuthorize("hasAuthority('write:admin:roles')")
     public ResponseEntity<ApiResponseFormat<Object>> updateRole(
             @PathVariable Long roleId,
             @Valid @RequestBody UpdateRoleRequest request
@@ -53,7 +53,7 @@ public class RoleController {
     }
 
     @DeleteMapping("/{roleId}")
-    @PreAuthorize("hasAuthority('delete:roles')")
+    @PreAuthorize("hasAuthority('delete:admin:roles')")
     public ResponseEntity<ApiResponseFormat<Object>> deleteRole(@PathVariable Long roleId)
     {
         rbacService.deleteRole(roleId);
@@ -63,7 +63,7 @@ public class RoleController {
     // --- Role-Permission Management ---
 
     @PostMapping("/{roleId}/permissions")
-    @PreAuthorize("hasAuthority('write:role_permissions')")
+    @PreAuthorize("hasAuthority('write:admin:role_permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> assignPermissionsToRole(
             @PathVariable Long roleId,
             @Valid @RequestBody AssignPermissionsRequest request)
@@ -73,7 +73,7 @@ public class RoleController {
     }
 
     @DeleteMapping("/{roleId}/permissions")
-    @PreAuthorize("hasAuthority('write:role_permissions')")
+    @PreAuthorize("hasAuthority('write:admin:role_permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> removePermissionsFromRole(
             @PathVariable Long roleId,
             @Valid @RequestBody RemovePermissionsRequest request)

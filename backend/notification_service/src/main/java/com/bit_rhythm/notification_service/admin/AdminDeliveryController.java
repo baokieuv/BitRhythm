@@ -24,7 +24,7 @@ public class AdminDeliveryController {
     private final ResponseFactory responseFactory;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('read:notification-logs')")
+    @PreAuthorize("hasAuthority('read:admin:notification-logs')")
     public ResponseEntity<ApiResponseFormat<Object>> search(@RequestParam(required = false) DeliveryStatus status,
                                                             @RequestParam(required = false) Long userId,
                                                             @RequestParam(defaultValue = "0") int page,
@@ -34,7 +34,7 @@ public class AdminDeliveryController {
     }
 
     @PostMapping("/{id}/resend")
-    @PreAuthorize("hasAuthority('write:notification-logs')")
+    @PreAuthorize("hasAuthority('write:admin:notification-logs')")
     public ResponseEntity<ApiResponseFormat<Object>> resend(@PathVariable Long id) {
         return responseFactory.response(CoreErrorCode.SUCCESS, adminDeliveryService.resend(id));
     }

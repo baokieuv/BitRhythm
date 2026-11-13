@@ -21,20 +21,20 @@ public class AdminUserController {
     private final ResponseFactory responseFactory;
 
     @PostMapping("/search")
-    @PreAuthorize("hasAuthority('read:users')")
+    @PreAuthorize("hasAuthority('read:admin:users')")
     public ResponseEntity<ApiResponseFormat<Object>> searchUsers(
             @Valid @RequestBody UserSearchRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS, adminService.searchUsers(request));
     }
 
     @GetMapping("/{userId}")
-    @PreAuthorize("hasAuthority('read:users')")
+    @PreAuthorize("hasAuthority('read:admin:users')")
     public ResponseEntity<ApiResponseFormat<Object>> getUser(@PathVariable Long userId) {
         return responseFactory.response(CoreErrorCode.SUCCESS, adminService.getUser(userId));
     }
 
     @PatchMapping("/{userId}/status")
-    @PreAuthorize("hasAuthority('write:users')")
+    @PreAuthorize("hasAuthority('write:admin:users')")
     public ResponseEntity<ApiResponseFormat<Object>> updateStatus(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateUserStatusRequest request) {
@@ -42,13 +42,13 @@ public class AdminUserController {
     }
 
     @PostMapping("/{userId}/unlock")
-    @PreAuthorize("hasAuthority('write:users')")
+    @PreAuthorize("hasAuthority('write:admin:users')")
     public ResponseEntity<ApiResponseFormat<Object>> unlock(@PathVariable Long userId) {
         return responseFactory.response(CoreErrorCode.SUCCESS, adminService.unlock(userId));
     }
 
     @PutMapping("/{userId}/roles")
-    @PreAuthorize("hasAuthority('write:users')")
+    @PreAuthorize("hasAuthority('write:admin:users')")
     public ResponseEntity<ApiResponseFormat<Object>> updateRoles(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateUserRolesRequest request) {
@@ -56,7 +56,7 @@ public class AdminUserController {
     }
 
     @PostMapping("/{userId}/revoke-sessions")
-    @PreAuthorize("hasAuthority('write:users')")
+    @PreAuthorize("hasAuthority('write:admin:users')")
     public ResponseEntity<ApiResponseFormat<Object>> revokeSessions(@PathVariable Long userId) {
         adminService.revokeSessions(userId);
         return responseFactory.response(CoreErrorCode.SUCCESS, null);

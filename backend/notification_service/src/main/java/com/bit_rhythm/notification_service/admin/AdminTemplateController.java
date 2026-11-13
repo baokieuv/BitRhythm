@@ -20,27 +20,27 @@ public class AdminTemplateController {
     private final ResponseFactory responseFactory;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('read:templates')")
+    @PreAuthorize("hasAuthority('read:admin:templates')")
     public ResponseEntity<ApiResponseFormat<Object>> list() {
         return responseFactory.response(CoreErrorCode.SUCCESS, templateService.listTemplates());
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('write:templates')")
+    @PreAuthorize("hasAuthority('write:admin:templates')")
     public ResponseEntity<ApiResponseFormat<Object>> create(
             @RequestBody @Valid NotificationTemplateRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS, templateService.create(request));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('write:templates')")
+    @PreAuthorize("hasAuthority('write:admin:templates')")
     public ResponseEntity<ApiResponseFormat<Object>> update(@PathVariable Long id,
             @RequestBody @Valid NotificationTemplateRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS, templateService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('delete:templates')")
+    @PreAuthorize("hasAuthority('delete:admin:templates')")
     public ResponseEntity<ApiResponseFormat<Object>> delete(@PathVariable Long id) {
         templateService.delete(id);
         return responseFactory.response(CoreErrorCode.SUCCESS, null);

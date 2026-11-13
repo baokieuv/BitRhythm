@@ -2,7 +2,6 @@ package com.bit_rhythm.notification_service.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -34,9 +33,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/health/**", "/error").permitAll()
                         // links inside emails and provider callbacks carry no bearer token
-                        .requestMatchers(HttpMethod.POST, "/webhooks/**").permitAll()   // verified by signature in the controller
-                        .requestMatchers("/api/notifications/internal/**").hasAuthority("TOKEN_SERVICE")  // + @PreAuthorize on scope
-                        .requestMatchers("/api/notifications/admin/**").hasAuthority("TOKEN_ACCESS")
+                        .requestMatchers("/internal/**").hasAuthority("TOKEN_SERVICE")  // + @PreAuthorize on scope
                         .requestMatchers("/api/notifications/**").hasAuthority("TOKEN_ACCESS")
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(oauth -> oauth

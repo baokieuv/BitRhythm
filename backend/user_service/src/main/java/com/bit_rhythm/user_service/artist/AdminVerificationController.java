@@ -8,6 +8,7 @@ import com.bit_rhythm.user_service.common.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** [S2] ROLE_ADMIN only (SecurityConfig). */
 @RestController
-@RequestMapping("/admin/artist-verifications")
+@RequestMapping("/api/users/admin/artist-verifications")
 @RequiredArgsConstructor
 public class AdminVerificationController {
 
@@ -28,11 +29,13 @@ public class AdminVerificationController {
     private final ResponseFactory responseFactory;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('read:admin:artist-verifications')")
     public ResponseEntity<ApiResponseFormat<Object>> pending(@RequestParam(defaultValue = "20") int size) {
         return responseFactory.response(CoreErrorCode.SUCCESS, verificationService.pending(size));
     }
 
     @PostMapping("/{id}/approve")
+    @PreAuthorize("hasAuthority('write:admin:artist-verifications')")
     public ResponseEntity<ApiResponseFormat<Object>> approve(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
                                                              @Valid @RequestBody(required = false) ReviewRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS,
@@ -40,6 +43,7 @@ public class AdminVerificationController {
     }
 
     @PostMapping("/{id}/reject")
+    @PreAuthorize("hasAuthority('write:admin:artist-verifications')")
     public ResponseEntity<ApiResponseFormat<Object>> reject(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
                                                             @Valid @RequestBody(required = false) ReviewRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS,

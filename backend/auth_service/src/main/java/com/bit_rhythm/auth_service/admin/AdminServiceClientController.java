@@ -20,7 +20,7 @@ public class AdminServiceClientController {
     private final ResponseFactory responseFactory;
 
     @PostMapping
-    @PreAuthorize("hasAuthority('write:service-clients')")
+    @PreAuthorize("hasAuthority('write:admin:service-clients')")
     public ResponseEntity<ApiResponseFormat<Object>> registerClient(
             @RequestBody @Valid ServiceClientRegisterRequest request
     ) {
@@ -28,13 +28,13 @@ public class AdminServiceClientController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('read:service-clients')")
+    @PreAuthorize("hasAuthority('read:admin:service-clients')")
     public ResponseEntity<ApiResponseFormat<Object>> listClients() {
         return responseFactory.response(CoreErrorCode.SUCCESS, clientService.searchServiceClients());
     }
 
     @PutMapping("/{clientId}/rotate-secret")
-    @PreAuthorize("hasAuthority('write:service-clients')")
+    @PreAuthorize("hasAuthority('write:admin:service-clients')")
     public ResponseEntity<ApiResponseFormat<Object>> rotateSecret(
             @PathVariable("clientId") String clientId
     ) {
