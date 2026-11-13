@@ -1,6 +1,8 @@
 package com.bit_rhythm.auth_service.event;
 
+import com.bit_rhythm.auth_service.common.enums.AggregateType;
 import com.bit_rhythm.auth_service.common.enums.Purpose;
+import com.bit_rhythm.auth_service.common.enums.UserEventType;
 import com.bit_rhythm.auth_service.config.AppProperties;
 import com.bit_rhythm.auth_service.user.User;
 import com.bit_rhythm.core.outbox.EventSerializer;
@@ -68,7 +70,7 @@ public class UserEventPublisher {
             // 2. Create the Outbox entity
             AuthOutboxEntity outboxEntity = new AuthOutboxEntity(
                     null,                  // Auto-generated ID
-                    "User",                // Aggregate Type
+                    AggregateType.NOTIFICATION.name(),                // Aggregate Type
                     user.getId().toString(), // Aggregate ID
                     eventType,
                     payload,
@@ -82,6 +84,34 @@ public class UserEventPublisher {
 
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to serialize or save notification event to outbox", ex);
+        }
+    }
+
+    public void publishUserEvent(User user, UserEventType eventType) {
+        UserEvent event = new UserEvent(
+                UUID.randomUUID().toString(),
+                eventType.name(),
+                EVENT_VERSION,
+                user.getId(),
+                user.getEmail(),
+                user.getUsername(),
+                Instant.now(),
+                new UserEvent.Metadata(SOURCE, MDC.get("correlationId")));
+
+        try {
+            String payload = EventSerializer.serialize(event);
+            authOutboxRepository.save(new AuthOutboxEntity(
+                    null,                       // generated id
+                    AggregateType.USER.name(),                     // aggregate type
+                    user.getId().toString(),    // aggregate id
+                    eventType.name(),
+                    payload,
+                    0,                          // not published yet
+                    LocalDateTime.now()));
+            log.info("Saved {} event {} to outbox for user id={}", eventType, event.eventId(), user.getId());
+        } catch (Exception ex) {
+            log.error("Failed to serialize or save the notification event to the outbox", ex);
+            throw new IllegalStateException("Failed to serialize or save the notification event to the outbox", ex);
         }
     }
 }

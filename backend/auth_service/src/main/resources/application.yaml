@@ -80,7 +80,9 @@ app:
   verification-token-ttl: 24h
   verify-email-url: ${VERIFY_EMAIL_URL:http://localhost:3000/verify-email}   # frontend page that POSTs the token to /auth/verify-email
   reset-password-url: ${RESET_PASSWORD_URL:http://localhost:3000/reset-password}
-  notification-topic: ${NOTIFICATION_TOPIC:notification.events}
+  topics:
+    notification: ${NOTIFICATION_TOPIC:notification.events}
+    auth-events: ${AUTH_EVENTS_TOPIC:auth.events}
   admin:
     email: ${ADMIN_EMAIL:bitrhythm@gmail.com}
     username: ${ADMIN_USERNAME:bitrhythm admin}

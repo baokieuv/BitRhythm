@@ -10,7 +10,7 @@ public record AppProperties(
         Duration verificationTokenTtl,
         String verifyEmailUrl,
         String resetPasswordUrl,
-        String notificationTopic,
+        Topics topics,
         Admin admin,
         RateLimit rateLimit
 ) {
@@ -26,5 +26,8 @@ public record AppProperties(
 
     /** Allow {@code capacity} POST requests per {@code period}, per client IP, on exactly this path. */
     public record Rule(String path, int capacity, Duration period) {
+    }
+
+    public record Topics(String notification, String authEvents) {
     }
 }

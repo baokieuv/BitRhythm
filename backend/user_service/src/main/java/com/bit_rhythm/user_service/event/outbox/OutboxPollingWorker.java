@@ -1,5 +1,6 @@
 package com.bit_rhythm.user_service.event.outbox;
 
+import com.bit_rhythm.user_service.common.enums.AggregateType;
 import com.bit_rhythm.user_service.config.UserProperties;
 import com.bit_rhythm.user_service.event.outbox.UserOutboxEntity;
 import com.bit_rhythm.user_service.event.outbox.UserOutboxRepository;
@@ -41,8 +42,22 @@ public class OutboxPollingWorker {
                 // A timeout, so an unreachable broker cannot hold this transaction (and its row locks) forever.
                 // If it times out but the message did arrive, the retry is a duplicate: notification-service
                 // ignores it (same eventId).
-                kafkaTemplate.send(appProperties.topics().notification(), event.getAggregateId(), event.getPayload())
-                        .get(SEND_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                switch (AggregateType.fromName(event.getAggregateType())) {
+                    case USER:
+                        // Handle user events
+                        break;
+                    case ARTIST:
+                        // Handle artist events
+                        break;
+                    case NOTIFICATION:
+                        kafkaTemplate.send(appProperties.topics().notification(), event.getAggregateId(), event.getPayload())
+                                .get(SEND_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                        break;
+                    case null:
+                        break;
+                    default:
+                        log.error("Unknown aggregate type: {}", event.getAggregateType());
+                }
 
                 // Mark the event as processed
                 event.setIsProcessed(1);

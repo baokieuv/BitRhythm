@@ -1,6 +1,7 @@
 package com.bit_rhythm.user_service.event;
 
 import com.bit_rhythm.core.outbox.EventSerializer;
+import com.bit_rhythm.user_service.common.enums.AggregateType;
 import com.bit_rhythm.user_service.event.outbox.UserOutboxEntity;
 import com.bit_rhythm.user_service.event.outbox.UserOutboxRepository;
 import com.bit_rhythm.user_service.profile.UserProfile;
@@ -53,9 +54,9 @@ public class UserEventPublisher {
         try {
             String payload = EventSerializer.serialize(event);
             outboxRepository.save(new UserOutboxEntity(
-                    null,                       // generated id
-                    "User",                     // aggregate type
-                    followeeId.toString(),      // aggregate id: events of one recipient stay in order
+                    null,                           // generated id
+                    AggregateType.NOTIFICATION.name(),     // aggregate type
+                    followeeId.toString(),                 // aggregate id: events of one recipient stay in order
                     NotificationEventType.NEW_FOLLOWER.name(),
                     payload,
                     0,                          // not published yet
@@ -84,8 +85,8 @@ public class UserEventPublisher {
         try {
             String payload = EventSerializer.serialize(event);
             outboxRepository.save(new UserOutboxEntity(
-                    null,                       // generated id
-                    "User",                     // aggregate type
+                    null,                          // generated id
+                    AggregateType.NOTIFICATION.name(),          // aggregate type
                     user.getUserId().toString(),          // aggregate id: events of one recipient stay in order
                     NotificationEventType.ARTIST_VERIFICATION_RESULT.name(),
                     payload,

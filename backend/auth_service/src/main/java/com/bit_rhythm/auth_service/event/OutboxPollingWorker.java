@@ -1,5 +1,6 @@
 package com.bit_rhythm.auth_service.event;
 
+import com.bit_rhythm.auth_service.common.enums.AggregateType;
 import com.bit_rhythm.auth_service.config.AppProperties;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,8 +40,13 @@ public class OutboxPollingWorker {
                 // A timeout, so an unreachable broker cannot hold this transaction (and its row locks) forever.
                 // If it times out but the message did arrive, the retry is a duplicate: notification-service
                 // ignores it (same eventId).
-                kafkaTemplate.send(appProperties.notificationTopic(), event.getAggregateId(), event.getPayload())
-                        .get(SEND_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                switch (AggregateType.fromName(event.getAggregateType())) {
+                    case USER -> kafkaTemplate.send(appProperties.topics().authEvents(), event.getAggregateId(), event.getPayload())
+                            .get(SEND_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                    case NOTIFICATION -> kafkaTemplate.send(appProperties.topics().notification(), event.getAggregateId(), event.getPayload())
+                            .get(SEND_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                    case null -> {}
+                }
 
                 // Mark the event as processed
                 event.setIsProcessed(1);

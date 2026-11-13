@@ -9,10 +9,12 @@ import com.bit_rhythm.auth_service.auth.dto.response.TokenResponse;
 import com.bit_rhythm.auth_service.auth.dto.response.UserResponse;
 import com.bit_rhythm.auth_service.common.enums.Purpose;
 import com.bit_rhythm.auth_service.common.enums.RevokeReason;
+import com.bit_rhythm.auth_service.common.enums.UserEventType;
 import com.bit_rhythm.auth_service.common.enums.UserStatus;
 import com.bit_rhythm.auth_service.common.exception.AuthCode;
 import com.bit_rhythm.auth_service.common.exception.AuthException;
 import com.bit_rhythm.auth_service.config.JwtProperties;
+import com.bit_rhythm.auth_service.event.UserEventPublisher;
 import com.bit_rhythm.auth_service.token.JwtService;
 import com.bit_rhythm.auth_service.token.RefreshTokenService;
 import com.bit_rhythm.auth_service.user.User;
@@ -39,6 +41,7 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final JwtProperties jwtProperties;
     private final VerificationService verificationService;
+    private final UserEventPublisher eventPublisher;
 
     /** Valid hash generated with the real encoder, so unknown-user logins cost the same as real ones. */
     private String dummyPasswordHash;
@@ -56,6 +59,7 @@ public class AuthService {
     public UserResponse register(RegisterRequest request) {
         User user = userService.register(request);
         verificationService.issueToken(user, Purpose.EMAIL_VERIFICATION);
+        eventPublisher.publishUserEvent(user, UserEventType.USER_REGISTERED);
         return new UserResponse(user);
     }
 

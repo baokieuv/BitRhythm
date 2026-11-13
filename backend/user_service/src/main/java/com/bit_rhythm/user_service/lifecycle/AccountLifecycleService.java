@@ -2,6 +2,7 @@ package com.bit_rhythm.user_service.lifecycle;
 
 import com.bit_rhythm.user_service.avatar.storage.StorageClient;
 import com.bit_rhythm.user_service.block.BlockRepository;
+import com.bit_rhythm.user_service.common.enums.UserEventType;
 import com.bit_rhythm.user_service.follow.Follow;
 import com.bit_rhythm.user_service.follow.FollowRepository;
 import com.bit_rhythm.user_service.profile.ProfileRepository;
@@ -18,16 +19,15 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.util.Set;
 
+import static com.bit_rhythm.user_service.common.enums.UserEventType.*;
+
 /** [S2] Keeps this service in step with the accounts of auth-service. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AccountLifecycleService {
 
-    static final String USER_REGISTERED = "USER_REGISTERED";
-    static final String USER_DISABLED = "USER_DISABLED";
-    static final String USER_DELETED = "USER_DELETED";
-    private static final Set<String> HANDLED = Set.of(USER_REGISTERED, USER_DISABLED, USER_DELETED);
+    private static final Set<String> HANDLED = Set.of(USER_REGISTERED.getName(), USER_DISABLED.getName(), USER_DELETED.getName());
 
     private static final String DELETED_DISPLAY_NAME = "Deleted user";
     private static final int MAX_DISPLAY_NAME = 100;
@@ -56,10 +56,11 @@ public class AccountLifecycleService {
         }
         processedEventRepository.saveAndFlush(new ProcessedEvent(event.eventId()));
 
-        switch (event.eventType()) {
+        switch (UserEventType.fromName(event.eventType())) {
             case USER_REGISTERED -> onUserRegistered(event);
             case USER_DISABLED -> onUserDisabled(event.userId());
             case USER_DELETED -> onUserDeleted(event.userId());
+            case null -> { }
             default -> { }   // unreachable: HANDLED was checked above
         }
     }

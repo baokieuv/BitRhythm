@@ -14,6 +14,7 @@ public enum NotificationType {
     PASSWORD_RESET_REQUESTED("password_reset", NotificationCategory.TRANSACTIONAL, Channel.EMAIL),
     PASSWORD_CHANGED("password_changed", NotificationCategory.SECURITY, Channel.EMAIL, Channel.IN_APP),
     NEW_FOLLOWER("new_follower", NotificationCategory.SOCIAL, Channel.IN_APP),
+    ARTIST_VERIFICATION_RESULT("artist_verification_result", NotificationCategory.TRANSACTIONAL, Channel.EMAIL, Channel.IN_APP),
     SYSTEM_ANNOUNCEMENT("system_announcement", NotificationCategory.MARKETING, Channel.IN_APP);
 
     private final String templateKey;
