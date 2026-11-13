@@ -17,11 +17,12 @@ flowchart TD
     ESP[ESP32 player - planned]
     Gateway[API Gateway]
     Auth[Auth Service]
-    User[User Service - integration in progress]
+    User[User Service]
     Notify[Notification Service]
     Core[Shared Core Library]
     MariaAuth[(Auth MariaDB)]
     MariaNotify[(Notification MariaDB)]
+    MariaUser[(User MariaDB)]
     Redis[(Redis)]
     Kafka[(Kafka)]
     MinIO[(MinIO)]
@@ -37,8 +38,13 @@ flowchart TD
     Notify --> MariaNotify
     Notify --> Redis
     Notify --> Kafka
+    User --> MariaUser
+    User --> Redis
+    User --> Kafka
+    User --> MinIO
     Auth -.-> Core
     Notify -.-> Core
+    User -.-> Core
 ```
 
 ### Backend modules
