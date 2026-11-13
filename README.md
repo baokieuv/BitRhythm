@@ -1,9 +1,9 @@
 # BitRhythm
 
 BitRhythm is a cloud-native music streaming platform designed for web clients
-and custom embedded players such as the ESP32. The project is being built as a
-service-oriented backend foundation that can support music catalog management,
-secure playback, social features, notifications, and hardware playback.
+and custom embedded players such as the ESP32. It combines a Spring Boot
+service-oriented backend with a Next.js music player frontend and shared local
+infrastructure for authentication, notifications, storage, and messaging.
 
 ## Architecture
 
@@ -13,10 +13,11 @@ platform to evolve toward a larger distributed architecture.
 
 ```mermaid
 flowchart TD
-    Web[Web client - planned]
+    Web[Next.js web player]
     ESP[ESP32 player - planned]
     Gateway[API Gateway]
     Auth[Auth Service]
+    User[User Service - integration in progress]
     Notify[Notification Service]
     Core[Shared Core Library]
     MariaAuth[(Auth MariaDB)]
@@ -28,6 +29,7 @@ flowchart TD
     Web --> Gateway
     ESP --> Gateway
     Gateway --> Auth
+    Gateway --> User
     Gateway --> Notify
     Auth --> MariaAuth
     Auth --> Redis
@@ -45,10 +47,11 @@ flowchart TD
 | --- | --- |
 | `backend/gateway` | Public API entry point, routing, JWT validation, CORS, rate limiting, retries, circuit breakers, and health endpoints |
 | `backend/auth_service` | Registration, login, refresh and logout, password recovery, email verification, JWT signing/JWKS, RBAC, service tokens, and admin user operations |
+| `backend/user_service` | User profiles, settings, avatars, follows, and follow-related outbox events; integration with the default stack is in progress |
 | `backend/notification_service` | Email notifications, in-app inbox, Server-Sent Events, delivery logs, templates, resend operations, and dead-letter replay |
 | `backend/core` | Shared Spring Boot library containing common web, validation, JPA, observability, and utility dependencies |
 | `device/` | Reserved for the ESP32/embedded player implementation |
-| `frontend/` | Reserved for the Next.js web client |
+| `frontend/` | Next.js music player with playlists, favorites, genres, search, authentication, and audio playback UI |
 
 ### Infrastructure
 
@@ -80,6 +83,14 @@ flowchart TD
 - Real-time notification streaming.
 - Administrative delivery logs, resend support, and dead-letter replay.
 
+### Web player
+
+The frontend in [`frontend/`](frontend/) is an actively developed Next.js
+application. It includes the home page, genre and search views, library,
+favorites, playlists, authentication screens, responsive navigation, themes,
+and a persistent audio player. It currently uses PostgreSQL through Prisma and
+can also be configured for SQLite during local development.
+
 ### Planned streaming workflows
 
 The target media workflow is direct-to-object-storage delivery:
@@ -96,7 +107,7 @@ audio is decoded and sent to an I2S DAC.
 ## Technology stack
 
 - Java 21
-- Spring Boot 4.1.1
+- Spring Boot 4.1.x
 - Spring Security and OAuth2 Resource Server
 - Spring Data JPA
 - MariaDB 11.4
@@ -105,13 +116,15 @@ audio is decoded and sent to an I2S DAC.
 - MinIO
 - Docker Compose
 - Maven
-- ESP-IDF/C++ and Next.js/TypeScript (planned clients)
+- Next.js 16.4 canary, React 19, TypeScript, Tailwind CSS, and Prisma 7
+- ESP-IDF/C++ (planned embedded client)
 
 ## Prerequisites
 
 - Docker Desktop with the Linux container engine enabled
 - Docker Compose v2
 - Java 21 and Maven, if running services outside Docker
+- Node.js and pnpm 10, if running the frontend
 - OpenSSL, if generating stable local JWT signing keys
 
 ## Quick start with Docker Compose
@@ -182,6 +195,9 @@ cd D:\HUST\after_uni\BitRhythm\backend\auth_service
 cd D:\HUST\after_uni\BitRhythm\backend\notification_service
 .\mvnw.cmd test
 
+cd D:\HUST\after_uni\BitRhythm\backend\user_service
+.\mvnw.cmd test
+
 cd D:\HUST\after_uni\BitRhythm\backend\gateway
 .\mvnw.cmd test
 ```
@@ -210,6 +226,35 @@ The gateway exposes the public API under these route groups:
 Service-only endpoints such as JWKS, token introspection, and internal
 notification publishing should not be exposed directly to public clients.
 
+## Running the frontend
+
+The frontend has its own setup and database workflow. See
+[`frontend/README.md`](frontend/README.md) for the full feature and testing
+documentation.
+
+From PowerShell:
+
+```powershell
+cd D:\HUST\after_uni\BitRhythm\frontend
+pnpm install
+pnpm prisma.push
+pnpm prisma.seed
+pnpm dev
+```
+
+Set `DATABASE_URL` in `frontend\.env.local` before running Prisma commands.
+The frontend's local development database is separate from the backend
+service databases.
+
+## User service status
+
+The user service contains the first-stage profile, settings, avatar, and follow
+features. Its standalone setup and integration notes are documented in
+[`backend/user_service/README.md`](backend/user_service/README.md). The default
+Compose stack currently starts the gateway, auth service, notification
+service, and shared infrastructure; user-service integration is still being
+completed.
+
 ## Repository layout
 
 ```text
@@ -218,10 +263,11 @@ BitRhythm/
 │   ├── auth_service/          # Authentication and authorization service
 │   ├── core/                  # Shared Java library
 │   ├── gateway/               # Public API gateway
-│   └── notification_service/  # Email and in-app notifications
+│   ├── notification_service/  # Email and in-app notifications
+│   └── user_service/          # Profiles, settings, avatars, and follows
 ├── device/                    # Planned ESP32 player
 ├── docker/                    # Compose files, environment examples, and data
-├── frontend/                  # Planned Next.js client
+├── frontend/                  # Next.js web player
 ├── jitpack.yml                # Shared core publication configuration
 └── README.md
 ```
@@ -242,8 +288,9 @@ BitRhythm/
 
 - Add the music catalog domain: artists, albums, songs, metadata, and artwork.
 - Add MinIO upload management and presigned playback URL generation.
-- Add playlists, favorites, listening history, and playback authorization.
-- Implement the Next.js web player with persistent HTML5 audio playback.
+- Connect the frontend player to backend catalog, playlist, favorite, and
+  playback APIs.
+- Complete user-service integration with the default Compose stack.
 - Implement ESP32 device pairing, range-based streaming, decoding, and I2S
   output.
 - Add production deployment, secret management, migrations, and scalable
@@ -251,4 +298,5 @@ BitRhythm/
 
 ## License
 
-No license has been declared yet.
+The frontend is licensed under the [MIT License](frontend/LICENSE). No license
+has been declared for the backend and repository root yet.
