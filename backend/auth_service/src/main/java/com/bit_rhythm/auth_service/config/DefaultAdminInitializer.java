@@ -1,6 +1,8 @@
 package com.bit_rhythm.auth_service.config;
 
+import com.bit_rhythm.auth_service.common.enums.UserEventType;
 import com.bit_rhythm.auth_service.common.enums.UserStatus;
+import com.bit_rhythm.auth_service.event.UserEventPublisher;
 import com.bit_rhythm.auth_service.rbac.Permission;
 import com.bit_rhythm.auth_service.rbac.PermissionRepository;
 import com.bit_rhythm.auth_service.rbac.Role;
@@ -15,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
@@ -73,6 +76,8 @@ public class DefaultAdminInitializer {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserEventPublisher eventPublisher;
+    private final TransactionTemplate transactionTemplate;
     private final AppProperties appProperties;
 
     @PostConstruct
@@ -114,7 +119,10 @@ public class DefaultAdminInitializer {
                 .roles(new LinkedHashSet<>(Set.of(superAdminRole)))
                 .build();
 
-        userRepository.save(admin);
+        transactionTemplate.executeWithoutResult(status -> {
+            userRepository.save(admin);
+            eventPublisher.publishUserEvent(admin, UserEventType.USER_REGISTERED);
+        });
         log.info("Created default admin account: {}", adminProperties.email());
     }
 
