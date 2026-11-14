@@ -41,7 +41,7 @@ flowchart TD
     User --> MariaUser
     User --> Redis
     User --> Kafka
-    User --> MinIO
+    User <--> MinIO
     Auth -.-> Core
     Notify -.-> Core
     User -.-> Core

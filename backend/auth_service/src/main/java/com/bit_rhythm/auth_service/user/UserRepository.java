@@ -18,6 +18,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmailIgnoreCase(String email);
 
+    Optional<User> findByIdAndIsDeleted(Long id, Integer isDeleted);
+
     @Query("""
             SELECT DISTINCT u FROM User u
             WHERE u.isDeleted = :deleted

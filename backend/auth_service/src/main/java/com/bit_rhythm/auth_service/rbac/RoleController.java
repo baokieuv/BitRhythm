@@ -1,5 +1,6 @@
 package com.bit_rhythm.auth_service.rbac;
 
+import com.bit_rhythm.auth_service.common.util.CurrentUser;
 import com.bit_rhythm.auth_service.rbac.dto.request.*;
 import com.bit_rhythm.core.dto.ApiResponseFormat;
 import com.bit_rhythm.core.exception.CoreErrorCode;
@@ -8,7 +9,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -45,40 +50,59 @@ public class RoleController {
     @PutMapping("/{roleId}")
     @PreAuthorize("hasAuthority('write:admin:roles')")
     public ResponseEntity<ApiResponseFormat<Object>> updateRole(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long roleId,
             @Valid @RequestBody UpdateRoleRequest request
     ) {
 
-        return responseFactory.response(CoreErrorCode.SUCCESS, rbacService.updateRole(roleId, request));
+        return responseFactory.response(
+                CoreErrorCode.SUCCESS,
+                rbacService.updateRole(CurrentUser.id(jwt), roleId, request)
+        );
     }
 
     @DeleteMapping("/{roleId}")
     @PreAuthorize("hasAuthority('delete:admin:roles')")
-    public ResponseEntity<ApiResponseFormat<Object>> deleteRole(@PathVariable Long roleId)
+    public ResponseEntity<ApiResponseFormat<Object>> deleteRole(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long roleId
+    )
     {
-        rbacService.deleteRole(roleId);
+        rbacService.deleteRole(CurrentUser.id(jwt), roleId);
         return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
     // --- Role-Permission Management ---
+    @PostMapping("/{userId}/roles")
+    @PreAuthorize("hasAuthority('write:admin:role_assignments')")
+    public ResponseEntity<ApiResponseFormat<Object>> assignRoles(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long userId,
+            @Valid @RequestBody AssignRolesRequest request
+    ) {
+        rbacService.assignRoles(CurrentUser.id(jwt), userId, request);
+        return responseFactory.response(CoreErrorCode.SUCCESS, null);
+    }
 
     @PostMapping("/{roleId}/permissions")
     @PreAuthorize("hasAuthority('write:admin:role_permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> assignPermissionsToRole(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long roleId,
             @Valid @RequestBody AssignPermissionsRequest request)
     {
-        rbacService.assignPermissions(roleId, request.permissionIds());
+        rbacService.assignPermissions(CurrentUser.id(jwt), roleId, request.permissionIds());
         return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
     @DeleteMapping("/{roleId}/permissions")
     @PreAuthorize("hasAuthority('write:admin:role_permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> removePermissionsFromRole(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long roleId,
             @Valid @RequestBody RemovePermissionsRequest request)
     {
-        rbacService.removePermissions(roleId, request.permissionIds());
+        rbacService.removePermissions(CurrentUser.id(jwt), roleId, request.permissionIds());
         return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 }

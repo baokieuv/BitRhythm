@@ -27,18 +27,23 @@ public class Permission extends BaseEntity {
     @Column(name = "name", nullable = false, unique = true)
     private String name;
 
+    @Column(name = "priority")
+    private Long priority = 0L;
+
     @Column(name = "description")
     private String description;
 
     public Permission(CreatePermissionRequest request) {
         BeanUtils.copyProperties(request, this);
         this.name = request.name().toUpperCase();
+        this.priority = request.priority();
         this.description = request.description();
     }
 
     public void update(UpdatePermissionRequest request) {
         BeanUtils.copyProperties(request, this);
         this.name = request.name().toUpperCase();
+        this.priority = request.priority();
         this.description = request.description();
     }
 }

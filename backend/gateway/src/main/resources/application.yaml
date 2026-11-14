@@ -32,7 +32,7 @@ spring:
             - id: auth-service
               uri: ${AUTH_SERVICE_URL:http://localhost:8081}
               predicates:
-                - Path=/api/auth/**, /api/roles/**, /api/permissions/**, /api/token/**
+                - Path=/api/auth/**
               filters:
                 # auth-service expects the public /api/auth/** path unchanged.
                 - RemoveRequestHeader=X-Internal-Api-Key
@@ -50,7 +50,7 @@ spring:
             - id: user-service
               uri: ${USER_SERVICE_URL:http://localhost:8082}
               predicates:
-                - Path=/api/user/**, /api/admin/**
+                - Path=/api/users/**
               filters:
                 - StripPrefix=2
                 - RemoveRequestHeader=X-Internal-Api-Key
@@ -136,8 +136,8 @@ gateway:
       - POST /api/auth/resend-verification
       - POST /api/auth/request-password-reset
       - POST /api/auth/reset-password
-      - POST /api/token
-      - POST /api/token/introspect
+      - POST /api/auth/token
+      - POST /api/auth/token/introspect
   rate-limit:
     enabled: ${GATEWAY_RATE_LIMIT_ENABLED:true}
     # First matching rule wins. Buckets live in memory, per gateway instance.

@@ -5,6 +5,7 @@ import com.bit_rhythm.auth_service.rbac.Permission;
 public record PermissionResponse(
         Long id,
         String name,
+        Long priority,
         String description,
         String createdAt,
         String updatedAt
@@ -13,6 +14,7 @@ public record PermissionResponse(
         return new PermissionResponse(
                 permission.getId(),
                 permission.getName(),
+                permission.getPriority(),
                 permission.getDescription(),
                 permission.getCreatedAt().toString(),
                 permission.getUpdatedAt().toString()
@@ -23,6 +25,7 @@ public record PermissionResponse(
         this(
                 permission.getId(),
                 permission.getName(),
+                permission.getPriority(),
                 permission.getDescription(),
                 permission.getCreatedAt().toString(),
                 permission.getUpdatedAt().toString()

@@ -57,24 +57,35 @@ public class RbacService {
     }
 
     @Transactional
-    public RoleResponse updateRole(Long roleId, UpdateRoleRequest request) {
-        if (roleRepository.existsByNameIgnoreCaseAndIdNotAndIsDeleted(request.name(), roleId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
+    public RoleResponse updateRole(Long actorId, Long roleId, UpdateRoleRequest request) {
+        long actorPriority = actorPriority(actorId);
+
+        Role role = roleRepository.findByIdAndIsDeleted(roleId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+                .orElseThrow(() -> new ApiException(CoreErrorCode.RESOURCE_NOT_FOUND));
+
+        if (actorPriority < priorityOf(role.getPriority())) {   // sửa role cao hơn mình
+            throw new ApiException(CoreErrorCode.FORBIDDEN_ACCESS);
+        }
+
+        if (roleRepository.existsByNameIgnoreCaseAndIdNotAndIsDeleted(
+                request.name(), roleId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
             throw new ApiException(CoreErrorCode.RESOURCE_ALREADY_EXISTS);
         }
 
-        Role role = roleRepository.findByIdAndIsDeleted(roleId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
-                .orElseThrow(() -> new ApiException(CoreErrorCode.RESOURCE_NOT_FOUND));
-
         role.update(request);
-
-        Role savedRole = roleRepository.save(role);
-        return new RoleResponse(savedRole);
+        return new RoleResponse(roleRepository.save(role));
     }
 
     @Transactional
-    public void deleteRole(Long roleId) {
+    public void deleteRole(Long actorId, Long roleId) {
+        long actorPriority = actorPriority(actorId);
+
         Role role = roleRepository.findByIdAndIsDeleted(roleId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
                 .orElseThrow(() -> new ApiException(CoreErrorCode.RESOURCE_NOT_FOUND));
+
+        if (actorPriority < priorityOf(role.getPriority())) {   // xóa role cao hơn mình
+            throw new ApiException(CoreErrorCode.FORBIDDEN_ACCESS);
+        }
 
         if (userRepository.existsByRolesContaining(role)) {
             throw new ApiException(CoreErrorCode.RESOURCE_IN_USE);
@@ -97,6 +108,20 @@ public class RbacService {
         return new PermissionResponse(savedPermission);
     }
 
+    @Transactional
+    public List<PermissionResponse> importPermissions(List<CreatePermissionRequest> request) {
+        List<Permission> permissionsToSave = request.stream()
+                .filter(req -> !permissionRepository.existsByNameIgnoreCaseAndIsDeleted(req.name(), CommonEnums.DeletedStatus.NOT_DELETED.getCode()))
+                .map(Permission::new)
+                .toList();
+
+        List<Permission> savedPermissions = permissionRepository.saveAll(permissionsToSave);
+
+        return savedPermissions.stream()
+                .map(PermissionResponse::new)
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public Page<PermissionResponse> getAllPermissions(PermissionSearchRequest request) {
         Page<Permission> permissionPage = permissionRepository.searchPermissions(
@@ -117,27 +142,38 @@ public class RbacService {
     }
 
     @Transactional
-    public PermissionResponse updatePermission(Long permissionId, UpdatePermissionRequest request) {
-        if (permissionRepository.existsByNameIgnoreCaseAndIdNotAndIsDeleted(request.name(), permissionId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
+    public PermissionResponse updatePermission(Long actorId, Long permissionId, UpdatePermissionRequest request) {
+        long actorPriority = actorPriority(actorId);
+
+        Permission permission = permissionRepository.findByIdAndIsDeleted(permissionId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+                .orElseThrow(() -> new ApiException(CoreErrorCode.RESOURCE_NOT_FOUND));
+
+        if (actorPriority < priorityOf(permission.getPriority())) {
+            throw new ApiException(CoreErrorCode.FORBIDDEN_ACCESS);
+        }
+
+        if (permissionRepository.existsByNameIgnoreCaseAndIdNotAndIsDeleted(
+                request.name(), permissionId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
             throw new ApiException(CoreErrorCode.RESOURCE_ALREADY_EXISTS);
         }
 
-        Permission permission = permissionRepository.findByIdAndIsDeleted(permissionId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
-                .orElseThrow(() -> new ApiException(CoreErrorCode.RESOURCE_NOT_FOUND));
-
         permission.update(request);
-
-        Permission savedPermission = permissionRepository.save(permission);
-        return new PermissionResponse(savedPermission);
+        return new PermissionResponse(permissionRepository.save(permission));
     }
 
     @Transactional
-    public void deletePermission(Long permissionId) {
+    public void deletePermission(Long actorId, Long permissionId) {
+        long actorPriority = actorPriority(actorId);
+
         Permission permission = permissionRepository.findByIdAndIsDeleted(permissionId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
                 .orElseThrow(() -> new ApiException(CoreErrorCode.RESOURCE_NOT_FOUND));
 
-        // Prevent deletion if the permission is currently assigned to any active roles
-        if (roleRepository.existsByPermissionsContainingAndIsDeleted(permission, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
+        if (actorPriority < priorityOf(permission.getPriority())) {
+            throw new ApiException(CoreErrorCode.FORBIDDEN_ACCESS);
+        }
+
+        if (roleRepository.existsByPermissionsContainingAndIsDeleted(
+                permission, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
             throw new ApiException(CoreErrorCode.RESOURCE_IN_USE);
         }
 
@@ -148,24 +184,83 @@ public class RbacService {
     // ROLE-PERMISSION ASSIGNMENTS
 
     @Transactional
-    public void assignPermissions(Long roleId, List<Long> permissionIds) {
-        Role role = roleRepository.findByIdAndIsDeleted(roleId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+    public void assignRoles(Long actorId, Long userId, AssignRolesRequest request) {
+        long actorPriority = actorPriority(actorId);
+
+        var user = userRepository.findByIdAndIsDeleted(userId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
                 .orElseThrow(() -> new ApiException(CoreErrorCode.RESOURCE_NOT_FOUND));
 
-        List<Permission> permissions = permissionRepository.findAllByIdInAndIsDeleted(permissionIds, CommonEnums.DeletedStatus.NOT_DELETED.getCode());
+        var roles = roleRepository.findAllByIdInAndIsDeleted(request.roleIds(), CommonEnums.DeletedStatus.NOT_DELETED.getCode());
+        if (roles.size() != new HashSet<>(request.roleIds()).size()) {
+            throw new ApiException(CoreErrorCode.RESOURCE_NOT_FOUND); // có id sai/đã xóa
+        }
 
-        role.getPermissions().addAll(new HashSet<>(permissions));
+        if (actorPriority < maxRolePriority(user.getRoles())   // tác động lên người cao hơn
+                || actorPriority < maxRolePriority(roles)) {   // gán role cao hơn mình
+            throw new ApiException(CoreErrorCode.FORBIDDEN_ACCESS);
+        }
 
+        user.setRoles(new HashSet<>(roles));
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void assignPermissions(Long actorId, Long roleId, List<Long> permissionIds) {
+        long actorPriority = actorPriority(actorId);
+
+        Role role = roleRepository.findByIdAndIsDeleted(roleId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+                .orElseThrow(() -> new ApiException(CoreErrorCode.RESOURCE_NOT_FOUND));
+        long rolePriority = priorityOf(role.getPriority());
+
+        if (actorPriority < rolePriority) {               // sửa role cao hơn mình
+            throw new ApiException(CoreErrorCode.FORBIDDEN_ACCESS);
+        }
+
+        List<Permission> permissions = permissionRepository.findAllByIdInAndIsDeleted(
+                permissionIds, CommonEnums.DeletedStatus.NOT_DELETED.getCode());
+        if (permissions.size() != new HashSet<>(permissionIds).size()) {
+            throw new ApiException(CoreErrorCode.RESOURCE_NOT_FOUND);
+        }
+
+        // permission > role thì không gán được (kéo theo permission <= actor)
+        if (permissions.stream().anyMatch(p -> priorityOf(p.getPriority()) > rolePriority)) {
+            throw new ApiException(CoreErrorCode.FORBIDDEN_ACCESS);
+        }
+
+        role.getPermissions().addAll(permissions);
         roleRepository.save(role);
     }
 
     @Transactional
-    public void removePermissions(Long roleId, List<Long> permissionIds) {
+    public void removePermissions(Long actorId, Long roleId, List<Long> permissionIds) {
+        long actorPriority = actorPriority(actorId);
+
         Role role = roleRepository.findByIdAndIsDeleted(roleId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
                 .orElseThrow(() -> new ApiException(CoreErrorCode.RESOURCE_NOT_FOUND));
 
-        role.getPermissions().removeIf(permission -> permissionIds.contains(permission.getId()));
+        if (actorPriority < priorityOf(role.getPriority())) {
+            throw new ApiException(CoreErrorCode.FORBIDDEN_ACCESS);
+        }
 
+        role.getPermissions().removeIf(p -> permissionIds.contains(p.getId()));
         roleRepository.save(role);
+    }
+
+    private long actorPriority(Long actorId) {
+        var actor = userRepository.findByIdAndIsDeleted(actorId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+                .orElseThrow(() -> new ApiException(CoreErrorCode.RESOURCE_NOT_FOUND));
+        return maxRolePriority(actor.getRoles());
+    }
+
+    private long priorityOf(Long priority) {
+        return priority == null ? 0L : priority;
+    }
+
+    private long maxRolePriority(java.util.Collection<Role> roles) {
+        if (roles == null) return 0L;
+        return roles.stream()
+                .mapToLong(r -> priorityOf(r.getPriority()))
+                .max()
+                .orElse(0L);
     }
 }

@@ -7,6 +7,7 @@ import java.util.List;
 public record RoleResponse(
         Long id,
         String name,
+        Long priority,
         String description,
         List<PermissionResponse> permissions
 ) {
@@ -14,6 +15,7 @@ public record RoleResponse(
         this(
                 role.getId(),
                 role.getName(),
+                role.getPriority(),
                 role.getDescription(),
                 role.getPermissions().stream()
                         .map(PermissionResponse::from)

@@ -1,5 +1,6 @@
 package com.bit_rhythm.auth_service.rbac;
 
+import com.bit_rhythm.auth_service.common.util.CurrentUser;
 import com.bit_rhythm.auth_service.rbac.dto.request.CreatePermissionRequest;
 import com.bit_rhythm.auth_service.rbac.dto.request.PermissionSearchRequest;
 import com.bit_rhythm.auth_service.rbac.dto.request.UpdatePermissionRequest;
@@ -10,7 +11,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -26,6 +31,14 @@ public class PermissionController {
             @Valid @RequestBody CreatePermissionRequest request
     ) {
         return responseFactory.response(CoreErrorCode.SUCCESS, rbacService.createPermission(request));
+    }
+
+    @PostMapping("/import")
+    @PreAuthorize("hasAuthority('write:admin:permissions')")
+    public ResponseEntity<ApiResponseFormat<Object>> importPermissions(
+            @Valid @RequestBody List<CreatePermissionRequest> request
+    ) {
+        return responseFactory.response(CoreErrorCode.SUCCESS, rbacService.importPermissions(request));
     }
 
     @PostMapping("/search")
@@ -45,16 +58,23 @@ public class PermissionController {
     @PutMapping("/{permissionId}")
     @PreAuthorize("hasAuthority('write:admin:permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> updatePermission(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long permissionId,
             @Valid @RequestBody UpdatePermissionRequest request
     ) {
-        return responseFactory.response(CoreErrorCode.SUCCESS, rbacService.updatePermission(permissionId, request));
+        return responseFactory.response(
+                CoreErrorCode.SUCCESS,
+                rbacService.updatePermission(CurrentUser.id(jwt), permissionId, request)
+        );
     }
 
     @DeleteMapping("/{permissionId}")
     @PreAuthorize("hasAuthority('delete:admin:permissions')")
-    public ResponseEntity<ApiResponseFormat<Object>> deletePermission(@PathVariable Long permissionId) {
-        rbacService.deletePermission(permissionId);
+    public ResponseEntity<ApiResponseFormat<Object>> deletePermission(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long permissionId
+    ) {
+        rbacService.deletePermission( CurrentUser.id(jwt), permissionId);
         return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 }
