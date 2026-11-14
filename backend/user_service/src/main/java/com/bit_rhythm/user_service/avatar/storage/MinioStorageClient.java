@@ -31,7 +31,7 @@ public class MinioStorageClient implements StorageClient {
             @Qualifier("minioClient") MinioClient internalClient,
             @Qualifier("minioPublicClient") MinioClient publicClient,
             @Value("${user.avatar.bucket}") String bucket,
-            @Value("${user.avatar.public-endpoint}") String publicEndpoint) {
+            @Value("${user.minio.public-endpoint}") String publicEndpoint) {
         this.internalClient = internalClient;
         this.publicClient = publicClient;
         this.bucket = bucket;

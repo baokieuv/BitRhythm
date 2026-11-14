@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface UserOutboxRepository extends JpaRepository<UserOutboxEntity, Long> {
     @Query(value = """
-        SELECT * FROM auth_service.outbox 
+        SELECT * FROM user_service.outbox 
         WHERE is_processed = 0 
         ORDER BY created_at ASC 
         LIMIT 100 

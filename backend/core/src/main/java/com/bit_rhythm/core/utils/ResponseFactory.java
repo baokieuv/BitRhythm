@@ -36,6 +36,7 @@ public class ResponseFactory {
         String localizedMessage = messageSource.getMessage(
                 responseCode.getMessage(), // e.g., "success.user.exists"
                 null,
+                responseCode.getMessage(),
                 locale
         );
         ApiResponseFormat.ApiData<T> apiData = new ApiResponseFormat.ApiData<>(
