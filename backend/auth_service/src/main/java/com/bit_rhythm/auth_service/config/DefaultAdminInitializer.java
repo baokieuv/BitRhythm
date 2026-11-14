@@ -27,19 +27,46 @@ import java.util.Set;
 @Slf4j
 public class DefaultAdminInitializer {
 
+    private static final String SUPER_ADMIN_ROLE = "SUPER_ADMIN";
     private static final String ADMIN_ROLE = "ADMIN";
+    private static final String ARTIST_ROLE = "ARTIST";
+    private static final String USER_ROLE = "USER";
 
+    // Higher number = more authority. SUPER_ADMIN > ADMIN, so ADMIN cannot touch SUPER_ADMIN.
+    private static final long SUPER_ADMIN_PRIORITY = 1000L;
+    private static final long ADMIN_PRIORITY = 500L;
+    private static final long ARTIST_PRIORITY = 10L;
+    private static final long USER_PRIORITY = 1L;
+
+    // Shared by SUPER_ADMIN and ADMIN. Permission priority stays at the default 0,
+    // so it is never higher than any role's priority.
     private static final List<String> ADMIN_PERMISSIONS = List.of(
-            "read:roles",
-            "write:roles",
-            "delete:roles",
-            "read:permissions",
-            "write:permissions",
-            "delete:permissions",
-            "write:role_permissions",
-            "read:users",
-            "write:users",
-            "delete:users"
+            // auth-service: roles / permissions / assignments
+            "read:admin:roles",
+            "write:admin:roles",
+            "delete:admin:roles",
+            "read:admin:permissions",
+            "write:admin:permissions",
+            "delete:admin:permissions",
+            "write:admin:role_assignments",
+            "write:admin:role_permissions",
+            // auth-service + user-service: users
+            "read:admin:users",
+            "write:admin:users",
+            "delete:users",                       // as written in AdminUserController (auth)
+            // auth-service: service clients
+            "read:admin:service-clients",
+            "write:admin:service-clients",
+            "write:service-clients",              // as written in AdminServiceClientController.deleteClient
+            // notification-service
+            "read:admin:notification-logs",
+            "write:admin:notification-logs",
+            "read:admin:templates",
+            "write:admin:templates",
+            "delete:admin:templates",
+            // user-service: artist verification
+            "read:admin:artist-verifications",
+            "write:admin:artist-verifications"
     );
 
     private final UserRepository userRepository;
@@ -51,18 +78,24 @@ public class DefaultAdminInitializer {
     @PostConstruct
     public void createDefaultAdmin() {
         AppProperties.Admin adminProperties = appProperties.admin();
-        Set<Permission> permissions = new LinkedHashSet<>();
+
+        Set<Permission> adminPermissions = new LinkedHashSet<>();
         for (String permissionName : ADMIN_PERMISSIONS) {
-            permissions.add(findOrCreatePermission(permissionName));
+            adminPermissions.add(findOrCreatePermission(permissionName, ADMIN_PRIORITY));
         }
 
-        Role adminRole = findOrCreateAdminRole(permissions);
+        Role superAdminRole = findOrCreateRole(
+                SUPER_ADMIN_ROLE, "Super administrator role", SUPER_ADMIN_PRIORITY, adminPermissions);
+        findOrCreateRole(ADMIN_ROLE, "System administrator role", ADMIN_PRIORITY, adminPermissions);
+        findOrCreateRole(ARTIST_ROLE, "Artist role", ARTIST_PRIORITY, Set.of());   // no permissions
+        findOrCreateRole(USER_ROLE, "Default user role", USER_PRIORITY, Set.of()); // no permissions
+
         Optional<User> existingUser = userRepository.findByEmailIgnoreCase(adminProperties.email());
 
         if (existingUser.isPresent()) {
             User admin = existingUser.get();
             admin.setIsDeleted(CommonEnums.DeletedStatus.NOT_DELETED.getCode());
-            admin.getRoles().add(adminRole);
+            admin.getRoles().add(superAdminRole);
             userRepository.save(admin);
             log.info("Default admin account is ready: {}", adminProperties.email());
             return;
@@ -78,14 +111,14 @@ public class DefaultAdminInitializer {
                 .failedLoginAttempts(0)
                 .version(0L)
                 .passwordChangedAt(LocalDateTime.now())
-                .roles(new LinkedHashSet<>(Set.of(adminRole)))
+                .roles(new LinkedHashSet<>(Set.of(superAdminRole)))
                 .build();
 
         userRepository.save(admin);
         log.info("Created default admin account: {}", adminProperties.email());
     }
 
-    private Permission findOrCreatePermission(String name) {
+    private Permission findOrCreatePermission(String name, long priority) {
         return permissionRepository.findByNameIgnoreCaseAndIsDeleted(
                         name, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
                 .orElseGet(() -> {
@@ -93,28 +126,28 @@ public class DefaultAdminInitializer {
                             .filter(item -> name.equalsIgnoreCase(item.getName()))
                             .findFirst()
                             .orElseGet(() -> new Permission(
-                                    new CreatePermissionRequest(name, "Permission to " + name.replace(':', ' '))));
-                    permission.setName(name);
+                                    new CreatePermissionRequest(name, priority, "Permission to " + name.replace(':', ' '))));
+                    permission.setName(name); // keep lowercase: hasAuthority() is case-sensitive
                     permission.setDescription("Permission to " + name.replace(':', ' '));
                     permission.setIsDeleted(CommonEnums.DeletedStatus.NOT_DELETED.getCode());
                     return permissionRepository.save(permission);
                 });
     }
 
-    private Role findOrCreateAdminRole(Set<Permission> permissions) {
-        Role adminRole = roleRepository.findByNameIgnoreCaseAndIsDeleted(
-                ADMIN_ROLE, CommonEnums.DeletedStatus.NOT_DELETED.getCode());
-        if (adminRole == null) {
-            adminRole = roleRepository.findAll().stream()
-                    .filter(item -> ADMIN_ROLE.equalsIgnoreCase(item.getName()))
+    private Role findOrCreateRole(String name, String description, long priority, Set<Permission> permissions) {
+        Role role = roleRepository.findByNameIgnoreCaseAndIsDeleted(
+                name, CommonEnums.DeletedStatus.NOT_DELETED.getCode());
+        if (role == null) {
+            role = roleRepository.findAll().stream()
+                    .filter(item -> name.equalsIgnoreCase(item.getName()))
                     .findFirst()
-                    .orElseGet(() -> new Role(
-                            new CreateRoleRequest(ADMIN_ROLE, "System administrator role")));
-            adminRole.setName(ADMIN_ROLE);
-            adminRole.setDescription("System administrator role");
-            adminRole.setIsDeleted(CommonEnums.DeletedStatus.NOT_DELETED.getCode());
+                    .orElseGet(() -> new Role(new CreateRoleRequest(name, priority, description)));
+            role.setName(name);
+            role.setDescription(description);
+            role.setIsDeleted(CommonEnums.DeletedStatus.NOT_DELETED.getCode());
         }
-        adminRole.getPermissions().addAll(permissions);
-        return roleRepository.save(adminRole);
+        role.setPriority(priority);
+        role.getPermissions().addAll(permissions);
+        return roleRepository.save(role);
     }
 }
