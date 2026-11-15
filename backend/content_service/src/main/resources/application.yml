@@ -1,0 +1,102 @@
+spring:
+  application:
+    name: content_service
+
+  datasource:
+    url: ${DB_URL:jdbc:mariadb://localhost:3306/content_service}
+    username: ${DB_USERNAME:content_service}
+    password: ${DB_PASSWORD:}
+    driver-class-name: org.mariadb.jdbc.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: 2
+      connection-timeout: 5000
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update          # simple start: tables are created from entities (switch to Flyway later)
+      # also adds the new service_clients.allowed_audiences column automatically
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:        # [S2] outbox worker: sends the JSON stored in the outbox row as it is
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        "[acks]": all
+    consumer:        # [S2] events of auth-service; the listener parses the JSON itself
+      group-id: content-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+  # Tokens are issued by auth-service. Keys come from its JWKS; nothing secret is shared.
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8081/.well-known/jwks.json}
+          issuer-uri: ${JWT_ISSUER}                                  # exactly auth-service's TOKEN_ISSUER
+          audiences: ${JWT_AUDIENCES:bit-rhythm-api,content-service}
+
+server:
+  port: 8083
+  forward-headers-strategy: framework
+
+content:
+  audio:
+    bucket: ${AUDIO_BUCKET:music-streaming}      # PRIVATE bucket: audio is only reachable through short-lived presigned URLs
+    max-bytes: 104857600                          # 100 MB
+    allowed-types: audio/mpeg,audio/flac,audio/aac,audio/mp4,audio/x-wav
+    upload-ttl: 15m                               # time the artist has to upload the file
+    stream-ttl: 10m                               # validity of a presigned GET handed to a listener
+  cover:
+    bucket: ${COVER_BUCKET:music-assets}          # public-read on covers/* (see docker-compose.common.yml)
+    max-bytes: 5242880                            # 5 MB
+    allowed-types: image/jpeg,image/png,image/webp
+    upload-ttl: 5m
+  minio:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}               # server side: stat, delete (docker: http://minio:9000)
+    public-endpoint: ${MINIO_PUBLIC_ENDPOINT:http://localhost:9000} # the host the BROWSER can reach: presigned URLs are signed with it
+    access-key: ${MINIO_ACCESS_KEY:}
+    secret-key: ${MINIO_SECRET_KEY:}
+  topics:
+    content-events: ${CONTENT_EVENTS_TOPIC:content.events}    # [S2] TRACK_PUBLISHED ... (consumed by user-service / notification-service)
+    auth-events: ${AUTH_EVENTS_TOPIC:auth.events}             # [S2] USER_DELETED / USER_DISABLED published by auth-service
+  kafka:
+    max-retries: 5
+    initial-backoff: 1s
+    max-backoff: 30s
+  pagination:
+    max-page-size: 50
+  playback:
+    min-play-seconds: 30        # a play counts after this many seconds of listening
+  playlist:
+    max-tracks: 500
+
+management:
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        live:
+          include: livenessState
+        ready:
+          include: readinessState,db,redis
