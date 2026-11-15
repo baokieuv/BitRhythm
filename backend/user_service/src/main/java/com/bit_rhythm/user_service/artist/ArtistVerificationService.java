@@ -1,6 +1,7 @@
 package com.bit_rhythm.user_service.artist;
 
 import com.bit_rhythm.core.common.CommonEnums;
+import com.bit_rhythm.user_service.artist.dto.request.ReviewRequest;
 import com.bit_rhythm.user_service.artist.dto.response.VerificationResponse;
 import com.bit_rhythm.user_service.common.exception.UserErrorCode;
 import com.bit_rhythm.user_service.common.exception.UserException;
@@ -30,7 +31,7 @@ public class ArtistVerificationService {
     /** Submit a new verification request for the user. */
     public VerificationResponse submit(Long userId, String message) {
 
-        if (profileRepository.existsByUserIdAndIsDeleted(userId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
+        if (!profileRepository.existsByUserIdAndIsDeleted(userId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
             throw new UserException(UserErrorCode.PROFILE_NOT_FOUND);
         }
 
@@ -50,7 +51,7 @@ public class ArtistVerificationService {
     /** Get the latest verification request for the user. */
     public VerificationResponse mine(Long userId) {
 
-        if (profileRepository.existsByUserIdAndIsDeleted(userId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
+        if (!profileRepository.existsByUserIdAndIsDeleted(userId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
             throw new UserException(UserErrorCode.PROFILE_NOT_FOUND);
         }
 
@@ -69,55 +70,59 @@ public class ArtistVerificationService {
     }
 
     /** Approve a verification request. */
-    public VerificationResponse approve(Long requestId, Long adminId, String note) {
+    public VerificationResponse approve(Long requestId, Long adminId, ReviewRequest request) {
 
-        ArtistVerificationRequest request = verificationRepository.findById(requestId)
+        ArtistVerificationRequest verificationRequest = verificationRepository.findById(requestId)
                 .orElseThrow(() -> new UserException(UserErrorCode.VERIFICATION_NOT_FOUND));
 
-        if (request.getStatus() == VerificationStatus.APPROVED) {
-            return VerificationResponse.from(request);
+        if (verificationRequest.getStatus() == VerificationStatus.APPROVED) {
+            return VerificationResponse.from(verificationRequest);
+        }
+
+        if (verificationRequest.getStatus() != VerificationStatus.PENDING) {
+            throw new UserException(UserErrorCode.VERIFICATION_NOT_PENDING);
         }
 
         transactionTemplate.executeWithoutResult(status -> {
-            request.setStatus(VerificationStatus.APPROVED);
-            request.setReviewedBy(adminId);
-            request.setReviewedAt(Instant.now());
-            request.setReviewNote(note);
-            verificationRepository.save(request);
+            verificationRequest.setStatus(VerificationStatus.APPROVED);
+            verificationRequest.setReviewedBy(adminId);
+            verificationRequest.setReviewedAt(Instant.now());
+            verificationRequest.setReviewNote(request.note());
+            verificationRepository.save(verificationRequest);
 
-            UserProfile profile = profileRepository.findByUserIdAndIsDeleted(request.getUserId(), CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+            UserProfile profile = profileRepository.findByUserIdAndIsDeleted(verificationRequest.getUserId(), CommonEnums.DeletedStatus.NOT_DELETED.getCode())
                     .orElseThrow(() -> new UserException(UserErrorCode.PROFILE_NOT_FOUND));
             profile.setVerified(true);
             profileRepository.save(profile);
 
             authClient.grantRoles(profile.getUserId(), List.of("ARTIST"));
 
-            eventPublisher.publishArtistVerificationResult(profile, request.getStatus().name(), request.getReviewNote());
+            eventPublisher.publishArtistVerificationResult(profile, verificationRequest.getStatus().name(), verificationRequest.getReviewNote());
         });
 
-        return VerificationResponse.from(request);
+        return VerificationResponse.from(verificationRequest);
     }
 
     /** Reject a verification request. */
-    public VerificationResponse reject(Long requestId, Long adminId, String note) {
+    public VerificationResponse reject(Long requestId, Long adminId, ReviewRequest request) {
 
-        ArtistVerificationRequest request = verificationRepository.findById(requestId)
+        ArtistVerificationRequest verificationRequest = verificationRepository.findById(requestId)
                 .orElseThrow(() -> new UserException(UserErrorCode.VERIFICATION_NOT_FOUND));
 
-        UserProfile profile = profileRepository.findByUserIdAndIsDeleted(request.getUserId(), CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+        UserProfile profile = profileRepository.findByUserIdAndIsDeleted(verificationRequest.getUserId(), CommonEnums.DeletedStatus.NOT_DELETED.getCode())
                 .orElseThrow(() -> new UserException(UserErrorCode.PROFILE_NOT_FOUND));
 
-        request.setStatus(VerificationStatus.REJECTED);
-        request.setReviewedBy(adminId);
-        request.setReviewedAt(Instant.now());
-        request.setReviewNote(note);
+        verificationRequest.setStatus(VerificationStatus.REJECTED);
+        verificationRequest.setReviewedBy(adminId);
+        verificationRequest.setReviewedAt(Instant.now());
+        verificationRequest.setReviewNote(request.note());
 
         transactionTemplate.executeWithoutResult(status -> {
-            verificationRepository.save(request);
+            verificationRepository.save(verificationRequest);
 
-            eventPublisher.publishArtistVerificationResult(profile, request.getStatus().name(), request.getReviewNote());
+            eventPublisher.publishArtistVerificationResult(profile, verificationRequest.getStatus().name(), verificationRequest.getReviewNote());
         });
 
-        return VerificationResponse.from(request);
+        return VerificationResponse.from(verificationRequest);
     }
 }
