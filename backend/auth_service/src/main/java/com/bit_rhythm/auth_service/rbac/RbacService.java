@@ -205,6 +205,17 @@ public class RbacService {
     }
 
     @Transactional
+    public void assignRoles(Long userId, AssignRolesRequest request) {
+        var user = userRepository.findByIdAndIsDeleted(userId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+                .orElseThrow(() -> new ApiException(CoreErrorCode.RESOURCE_NOT_FOUND));
+
+        var roles = roleRepository.findAllByNameInIgnoreCaseAndIsDeleted(request.roleNames(), CommonEnums.DeletedStatus.NOT_DELETED.getCode());
+
+        user.getRoles().addAll(new HashSet<>(roles));
+        userRepository.save(user);
+    }
+
+    @Transactional
     public void assignPermissions(Long actorId, Long roleId, List<Long> permissionIds) {
         long actorPriority = actorPriority(actorId);
 

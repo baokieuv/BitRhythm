@@ -30,7 +30,7 @@ public class ServiceClientService {
 
     @Transactional
     public CreatedClient register(ServiceClientRegisterRequest request) {
-        if (serviceClientRepository.existsByClientId(request.clientId())) {
+        if (serviceClientRepository.existsByClientIdAndIsDeleted(request.clientId(), CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
             throw new ApiException(AuthCode.CLIENT_ALREADY_EXISTS);
         }
 
@@ -68,6 +68,7 @@ public class ServiceClientService {
     public void deactivate(String clientId) {
         ServiceClient client = findOrThrow(clientId);
         client.setIsActive(false);
+        client.setIsDeleted(CommonEnums.DeletedStatus.DELETED.getCode());
         serviceClientRepository.save(client);
     }
 

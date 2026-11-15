@@ -90,7 +90,7 @@ public class ArtistVerificationService {
             profile.setVerified(true);
             profileRepository.save(profile);
 
-            authClient.grantRole(profile.getUserId(), "ARTIST");
+            authClient.grantRoles(profile.getUserId(), List.of("ARTIST"));
 
             eventPublisher.publishArtistVerificationResult(profile, request.getStatus().name(), request.getReviewNote());
         });

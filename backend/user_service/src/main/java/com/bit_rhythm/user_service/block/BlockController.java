@@ -24,13 +24,13 @@ public class BlockController {
     private final BlockService blockService;
     private final ResponseFactory responseFactory;
 
-    @PutMapping("/{id}/block")
+    @PutMapping("/block/{id}")
     public ResponseEntity<ApiResponseFormat<Object>> block(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         blockService.block(CurrentUser.id(jwt), id);
         return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
-    @DeleteMapping("/{id}/block")
+    @DeleteMapping("/block/{id}")
     public ResponseEntity<ApiResponseFormat<Object>> unblock(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         blockService.unblock(CurrentUser.id(jwt), id);
         return responseFactory.response(CoreErrorCode.SUCCESS, null);

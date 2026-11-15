@@ -15,5 +15,5 @@ public interface ServiceClientRepository extends JpaRepository<ServiceClient, Lo
 
     List<ServiceClient> findAllByIsDeleted(Integer isDeleted);
 
-    boolean existsByClientId(String clientId);
+    boolean existsByClientIdAndIsDeleted(String clientId, Integer isDeleted);
 }

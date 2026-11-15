@@ -1,7 +1,7 @@
 package com.bit_rhythm.auth_service.rbac;
 
-import com.bit_rhythm.auth_service.common.util.CurrentUser;
 import com.bit_rhythm.auth_service.rbac.dto.request.*;
+import com.bit_rhythm.auth_service.security.AuthUser;
 import com.bit_rhythm.core.dto.ApiResponseFormat;
 import com.bit_rhythm.core.exception.CoreErrorCode;
 import com.bit_rhythm.core.utils.ResponseFactory;
@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,7 +21,7 @@ public class RoleController {
 
     private final ResponseFactory responseFactory;
 
-     private final RbacService rbacService;
+    private final RbacService rbacService;
 
     @PostMapping
     @PreAuthorize("hasAuthority('write:admin:roles')")
@@ -50,25 +49,25 @@ public class RoleController {
     @PutMapping("/{roleId}")
     @PreAuthorize("hasAuthority('write:admin:roles')")
     public ResponseEntity<ApiResponseFormat<Object>> updateRole(
-            @AuthenticationPrincipal Jwt jwt,
+            @AuthenticationPrincipal AuthUser user,
             @PathVariable Long roleId,
             @Valid @RequestBody UpdateRoleRequest request
     ) {
 
         return responseFactory.response(
                 CoreErrorCode.SUCCESS,
-                rbacService.updateRole(CurrentUser.id(jwt), roleId, request)
+                rbacService.updateRole(user.id(), roleId, request)
         );
     }
 
     @DeleteMapping("/{roleId}")
     @PreAuthorize("hasAuthority('delete:admin:roles')")
     public ResponseEntity<ApiResponseFormat<Object>> deleteRole(
-            @AuthenticationPrincipal Jwt jwt,
+            @AuthenticationPrincipal AuthUser user,
             @PathVariable Long roleId
     )
     {
-        rbacService.deleteRole(CurrentUser.id(jwt), roleId);
+        rbacService.deleteRole(user.id(), roleId);
         return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
@@ -76,33 +75,33 @@ public class RoleController {
     @PostMapping("/{userId}/roles")
     @PreAuthorize("hasAuthority('write:admin:role_assignments')")
     public ResponseEntity<ApiResponseFormat<Object>> assignRoles(
-            @AuthenticationPrincipal Jwt jwt,
+            @AuthenticationPrincipal AuthUser user,
             @PathVariable Long userId,
             @Valid @RequestBody AssignRolesRequest request
     ) {
-        rbacService.assignRoles(CurrentUser.id(jwt), userId, request);
+        rbacService.assignRoles(user.id(), userId, request);
         return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
     @PostMapping("/{roleId}/permissions")
     @PreAuthorize("hasAuthority('write:admin:role_permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> assignPermissionsToRole(
-            @AuthenticationPrincipal Jwt jwt,
+            @AuthenticationPrincipal AuthUser user,
             @PathVariable Long roleId,
             @Valid @RequestBody AssignPermissionsRequest request)
     {
-        rbacService.assignPermissions(CurrentUser.id(jwt), roleId, request.permissionIds());
+        rbacService.assignPermissions(user.id(), roleId, request.permissionIds());
         return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
     @DeleteMapping("/{roleId}/permissions")
     @PreAuthorize("hasAuthority('write:admin:role_permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> removePermissionsFromRole(
-            @AuthenticationPrincipal Jwt jwt,
+            @AuthenticationPrincipal AuthUser user,
             @PathVariable Long roleId,
             @Valid @RequestBody RemovePermissionsRequest request)
     {
-        rbacService.removePermissions(CurrentUser.id(jwt), roleId, request.permissionIds());
+        rbacService.removePermissions(user.id(), roleId, request.permissionIds());
         return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 }

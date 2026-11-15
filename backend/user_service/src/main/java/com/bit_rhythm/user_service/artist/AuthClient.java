@@ -17,6 +17,7 @@ import org.springframework.web.client.RestClientResponseException;
 
 import java.net.http.HttpClient;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -61,8 +62,8 @@ public class AuthClient {
      * does not exist in auth-service) -> PROFILE_NOT_FOUND. A 401/403 means THIS service is misconfigured (scope or audience of
      * its service client): it is logged at ERROR and also reported as AUTH_SERVICE_UNAVAILABLE.
      */
-    public void grantRole(Long userId, String role) {
-        if (userId == null || role == null || role.isBlank()) {
+    public void grantRoles(Long userId, List<String> roles) {
+        if (userId == null || roles == null || roles.isEmpty()) {
             throw new IllegalArgumentException("userId and role are required");
         }
         if (restClient == null) {
@@ -74,28 +75,28 @@ public class AuthClient {
             restClient.post()
                     .uri("/internal/users/{id}/roles", userId)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("role", role))
+                    .body(Map.of("roleNames", roles))
                     .retrieve()
                     .toBodilessEntity();
         } catch (RestClientResponseException e) {          // the server answered with 4xx / 5xx
-            throw toUserException(e, userId, role);
+            throw toUserException(e, userId, roles);
         } catch (RestClientException | IllegalStateException e) {   // no connection, timeout, or no service token
-            log.warn("Cannot reach auth-service to grant role {} to user {}: {}", role, userId, e.toString());
+            log.warn("Cannot reach auth-service to grant role {} to user {}: {}", roles, userId, e.toString());
             throw new UserException(UserErrorCode.AUTH_SERVICE_UNAVAILABLE, e.getClass().getSimpleName());
         }
     }
 
-    private UserException toUserException(RestClientResponseException e, Long userId, String role) {
+    private UserException toUserException(RestClientResponseException e, Long userId, List<String> roles) {
         int status = e.getStatusCode().value();
         if (status == 404) {
             return new UserException(UserErrorCode.PROFILE_NOT_FOUND, "auth-service does not know user " + userId);
         }
         if (status == 401 || status == 403) {
             log.error("auth-service refused the service token (HTTP {}) while granting role {} to user {}: "
-                    + "check the scope (roles:write) and the allowed audience (auth-service) of the service client", status, role, userId);
+                    + "check the scope (roles:write) and the allowed audience (auth-service) of the service client", status, roles, userId);
             return new UserException(UserErrorCode.AUTH_SERVICE_UNAVAILABLE, "auth-service refused the service token, HTTP " + status);
         }
-        log.warn("auth-service answered HTTP {} while granting role {} to user {}", status, role, userId);
+        log.warn("auth-service answered HTTP {} while granting role {} to user {}", status, roles, userId);
         return new UserException(UserErrorCode.AUTH_SERVICE_UNAVAILABLE, "HTTP " + status);
     }
 

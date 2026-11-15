@@ -22,7 +22,7 @@ public class ServiceClient extends BaseEntity {
     @Column(name = "id", nullable = false, unique = true)
     private Long id;
 
-    @Column(name = "client_id", nullable = false, unique = true)
+    @Column(name = "client_id", nullable = false)
     private String clientId;
 
     @Column(name = "client_secret_hash", nullable = false)

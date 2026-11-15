@@ -36,12 +36,9 @@ public class UserService {
         }
 
         HashSet<Role> roles = new HashSet<>();
-        Role userRole = roleRepository.findByNameIgnoreCaseAndIsDeleted(
+        roleRepository.findByNameIgnoreCaseAndIsDeleted(
                 "USER",
-                CommonEnums.DeletedStatus.NOT_DELETED.getCode());
-        if (userRole != null) {
-            roles.add(userRole);
-        }
+                CommonEnums.DeletedStatus.NOT_DELETED.getCode()).ifPresent(roles::add);
 
         User user = User.builder()
                 .username(username)

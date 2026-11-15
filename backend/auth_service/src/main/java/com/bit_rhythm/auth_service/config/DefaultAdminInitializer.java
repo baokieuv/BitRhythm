@@ -20,10 +20,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Component
 @RequiredArgsConstructor
@@ -53,6 +50,8 @@ public class DefaultAdminInitializer {
             "delete:admin:permissions",
             "write:admin:role_assignments",
             "write:admin:role_permissions",
+            // auth-service: roles / permissions / assignments internal
+            "write:internal:role_assignments",
             // auth-service + user-service: users
             "read:admin:users",
             "write:admin:users",
@@ -91,16 +90,16 @@ public class DefaultAdminInitializer {
 
         Role superAdminRole = findOrCreateRole(
                 SUPER_ADMIN_ROLE, "Super administrator role", SUPER_ADMIN_PRIORITY, adminPermissions);
-        findOrCreateRole(ADMIN_ROLE, "System administrator role", ADMIN_PRIORITY, adminPermissions);
-        findOrCreateRole(ARTIST_ROLE, "Artist role", ARTIST_PRIORITY, Set.of());   // no permissions
-        findOrCreateRole(USER_ROLE, "Default user role", USER_PRIORITY, Set.of()); // no permissions
+        Role adminRole = findOrCreateRole(ADMIN_ROLE, "System administrator role", ADMIN_PRIORITY, adminPermissions);
+        Role artist = findOrCreateRole(ARTIST_ROLE, "Artist role", ARTIST_PRIORITY, Set.of());   // no permissions
+        Role user = findOrCreateRole(USER_ROLE, "Default user role", USER_PRIORITY, Set.of()); // no permissions
 
         Optional<User> existingUser = userRepository.findByEmailIgnoreCase(adminProperties.email());
 
         if (existingUser.isPresent()) {
             User admin = existingUser.get();
             admin.setIsDeleted(CommonEnums.DeletedStatus.NOT_DELETED.getCode());
-            admin.getRoles().add(superAdminRole);
+            admin.getRoles().addAll(new LinkedHashSet<>(Set.of(superAdminRole, adminRole, artist, user)));
             userRepository.save(admin);
             log.info("Default admin account is ready: {}", adminProperties.email());
             return;
@@ -116,7 +115,7 @@ public class DefaultAdminInitializer {
                 .failedLoginAttempts(0)
                 .version(0L)
                 .passwordChangedAt(LocalDateTime.now())
-                .roles(new LinkedHashSet<>(Set.of(superAdminRole)))
+                .roles(new LinkedHashSet<>(Set.of(superAdminRole, adminRole, artist, user)))
                 .build();
 
         transactionTemplate.executeWithoutResult(status -> {
@@ -144,7 +143,7 @@ public class DefaultAdminInitializer {
 
     private Role findOrCreateRole(String name, String description, long priority, Set<Permission> permissions) {
         Role role = roleRepository.findByNameIgnoreCaseAndIsDeleted(
-                name, CommonEnums.DeletedStatus.NOT_DELETED.getCode());
+                name, CommonEnums.DeletedStatus.NOT_DELETED.getCode()).orElse(null);
         if (role == null) {
             role = roleRepository.findAll().stream()
                     .filter(item -> name.equalsIgnoreCase(item.getName()))

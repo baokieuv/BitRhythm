@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/users/{id}")
+@RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class FollowController {
 
@@ -26,20 +26,20 @@ public class FollowController {
     private final ProfileService profileService;
     private final ResponseFactory responseFactory;
 
-    @PutMapping("/follow")
+    @PutMapping("/follow/{id}")
     public ResponseEntity<ApiResponseFormat<Object>> follow(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         profileService.getOrCreate(jwt);   // the follower needs a profile: counters and the notification depend on it
         followService.follow(CurrentUser.id(jwt), id);
         return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
-    @DeleteMapping("/follow")
+    @DeleteMapping("/follow/{id}")
     public ResponseEntity<ApiResponseFormat<Object>> unfollow(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         followService.unfollow(CurrentUser.id(jwt), id);
         return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
-    @GetMapping("/followers")
+    @GetMapping("/me/followers")
     public ResponseEntity<ApiResponseFormat<Object>> followers(@AuthenticationPrincipal Jwt jwt,
                                                                @RequestParam(required = false) Long cursor,
                                                                @RequestParam(defaultValue = "20") int size) {
@@ -47,7 +47,7 @@ public class FollowController {
                 followService.followers(CurrentUser.id(jwt), cursor, size));
     }
 
-    @GetMapping("/following")
+    @GetMapping("/me/following")
     public ResponseEntity<ApiResponseFormat<Object>> following(@AuthenticationPrincipal Jwt jwt,
                                                                @RequestParam(required = false) Long cursor,
                                                                @RequestParam(defaultValue = "20") int size) {

@@ -108,7 +108,7 @@ public class RefreshTokenService {
 
     public record IssuedToken(String rawToken, RefreshToken entity, UserReference reference) {
         public IssuedToken(String rawToken, RefreshToken entity) {
-            this(rawToken, entity, null);
+            this(rawToken, entity, new UserReference(entity.getUserId(), entity.getFamilyId()));
         }
     }
 

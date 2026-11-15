@@ -14,7 +14,9 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
 
     boolean existsByNameIgnoreCaseAndIsDeleted(String name, Integer isDeleted);
 
-    Role findByNameIgnoreCaseAndIsDeleted(String name, Integer isDeleted);
+    Optional<Role> findByNameIgnoreCaseAndIsDeleted(String name, Integer isDeleted);
+
+    List<Role> findAllByNameInIgnoreCaseAndIsDeleted(List<String> names, Integer isDeleted);
 
     Optional<Role> findByIdAndIsDeleted(Long id, Integer isDeleted);
 

@@ -1,9 +1,9 @@
 package com.bit_rhythm.auth_service.rbac;
 
-import com.bit_rhythm.auth_service.common.util.CurrentUser;
 import com.bit_rhythm.auth_service.rbac.dto.request.CreatePermissionRequest;
 import com.bit_rhythm.auth_service.rbac.dto.request.PermissionSearchRequest;
 import com.bit_rhythm.auth_service.rbac.dto.request.UpdatePermissionRequest;
+import com.bit_rhythm.auth_service.security.AuthUser;
 import com.bit_rhythm.core.dto.ApiResponseFormat;
 import com.bit_rhythm.core.exception.CoreErrorCode;
 import com.bit_rhythm.core.utils.ResponseFactory;
@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -58,23 +57,23 @@ public class PermissionController {
     @PutMapping("/{permissionId}")
     @PreAuthorize("hasAuthority('write:admin:permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> updatePermission(
-            @AuthenticationPrincipal Jwt jwt,
+            @AuthenticationPrincipal AuthUser user,
             @PathVariable Long permissionId,
             @Valid @RequestBody UpdatePermissionRequest request
     ) {
         return responseFactory.response(
                 CoreErrorCode.SUCCESS,
-                rbacService.updatePermission(CurrentUser.id(jwt), permissionId, request)
+                rbacService.updatePermission(user.id(), permissionId, request)
         );
     }
 
     @DeleteMapping("/{permissionId}")
     @PreAuthorize("hasAuthority('delete:admin:permissions')")
     public ResponseEntity<ApiResponseFormat<Object>> deletePermission(
-            @AuthenticationPrincipal Jwt jwt,
+            @AuthenticationPrincipal AuthUser user,
             @PathVariable Long permissionId
     ) {
-        rbacService.deletePermission( CurrentUser.id(jwt), permissionId);
+        rbacService.deletePermission(user.id(), permissionId);
         return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 }

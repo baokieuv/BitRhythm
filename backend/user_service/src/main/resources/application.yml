@@ -77,7 +77,7 @@ service-auth:
     token-uri: ${AUTH_TOKEN_URI:http://localhost:8081/api/auth/token}
     client-id: ${SERVICE_CLIENT_ID:user-service}
     client-secret: ${SERVICE_CLIENT_SECRET:}
-    scope: roles:write
+    scope: write:internal:role_assignments
 
 management:
   endpoints:

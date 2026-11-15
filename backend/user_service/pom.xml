@@ -40,7 +40,7 @@
         <dependency>
             <groupId>com.github.baokieuv</groupId>
             <artifactId>BitRhythm</artifactId>
-            <version>core-v1.0.2</version>
+            <version>core-v1.0.3</version>
         </dependency>
 
         <!-- Kafka Starter (Replaced legacy spring-kafka) -->
