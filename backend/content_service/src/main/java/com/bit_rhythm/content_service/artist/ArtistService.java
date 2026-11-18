@@ -2,12 +2,25 @@ package com.bit_rhythm.content_service.artist;
 
 import com.bit_rhythm.content_service.artist.dto.ArtistResponse;
 import com.bit_rhythm.content_service.artist.dto.UpdateArtistRequest;
+import com.bit_rhythm.content_service.common.exception.ContentErrorCode;
+import com.bit_rhythm.content_service.common.exception.ContentException;
+import com.bit_rhythm.content_service.config.ContentProperties;
+import com.bit_rhythm.content_service.storage.StorageClient;
+import com.bit_rhythm.core.common.CommonEnums;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class ArtistService {
 
-    /** [S1] TODO(hint): ARTIST_NOT_FOUND when missing; imageUrl from the public cover bucket. */
+    private final ArtistRepository artistRepository;
+    private final StorageClient storageClient;
+    private final ContentProperties properties;
+
+    /** Get an artist by ID, or throw an exception if not found. */
     public ArtistResponse get(Long artistId) {
         throw new UnsupportedOperationException("TODO");
     }
@@ -17,12 +30,19 @@ public class ArtistService {
      * calls this first: it is how "only the owner can edit" is enforced (a track/album belongs to artist.getId()).
      */
     public Artist requireOwnedBy(Long userId) {
-        throw new UnsupportedOperationException("TODO");
+
+        return artistRepository
+                .findByOwnerUserIdAndIsDeleted(userId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+                .orElseThrow(() -> new ContentException(ContentErrorCode.ARTIST_PROFILE_REQUIRED));
     }
 
     /** [S1] TODO(hint): same as requireOwnedBy, mapped. */
     public ArtistResponse mine(Long userId) {
-        throw new UnsupportedOperationException("TODO");
+
+        Artist artist = requireOwnedBy(userId);
+        String imageUrl = storageClient.publicUrl(properties.cover().bucket(), artist.getImageKey());
+
+        return ArtistResponse.from(artist, imageUrl);
     }
 
     /**

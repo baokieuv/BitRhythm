@@ -38,7 +38,9 @@ public enum ContentErrorCode implements ApiResponseCode {
     INVALID_TRACK_ORDER(false, "CONTENT0019", "The new order must contain exactly the tracks of the playlist", HttpStatus.BAD_REQUEST),
 
     REPORT_ALREADY_OPEN(false, "CONTENT0020", "You already reported this content", HttpStatus.CONFLICT),
-    REPORT_ALREADY_CLOSED(false, "CONTENT0021", "This report is already closed", HttpStatus.CONFLICT);
+    REPORT_ALREADY_CLOSED(false, "CONTENT0021", "This report is already closed", HttpStatus.CONFLICT),
+
+    GENRE_ALREADY_EXISTS(false, "CONTENT0022", "This genre already exists", HttpStatus.CONFLICT);
 
     private final boolean success;
     private final String code;

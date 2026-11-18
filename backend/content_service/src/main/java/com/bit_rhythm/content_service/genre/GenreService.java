@@ -1,26 +1,62 @@
 package com.bit_rhythm.content_service.genre;
 
+import com.bit_rhythm.content_service.common.exception.ContentErrorCode;
+import com.bit_rhythm.content_service.common.exception.ContentException;
 import com.bit_rhythm.content_service.genre.dto.GenreRequest;
 import com.bit_rhythm.content_service.genre.dto.GenreResponse;
+import com.bit_rhythm.core.common.CommonEnums;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class GenreService {
 
-    /** [S1] TODO(hint): GenreRepository.findAllByOrderByNameAsc, mapped to GenreResponse. A tiny table: cache it (Redis or in memory) once it is measured to matter. */
+    private final GenreRepository genreRepository;
+
+    /** List all non-deleted genres, ordered by name. */
     public List<GenreResponse> list() {
-        throw new UnsupportedOperationException("TODO");
+
+        List<Genre> genres = genreRepository.findAllByIsDeletedOrderByNameAsc(CommonEnums.DeletedStatus.NOT_DELETED.getCode());
+        return genres.stream()
+                .map(GenreResponse::from)
+                .toList();
     }
 
-    /** [S1] TODO(hint): admin. slug = lower-case name with spaces and symbols turned into "-"; a duplicate name or slug -> 409 (add GENRE_ALREADY_EXISTS to ContentErrorCode). */
+    /** Create a new genre. */
     public GenreResponse create(GenreRequest request) {
-        throw new UnsupportedOperationException("TODO");
+
+        if (genreRepository.existsByNameAndIsDeleted(request.name(), CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
+            throw new ContentException(ContentErrorCode.GENRE_ALREADY_EXISTS);
+        }
+
+        String slug = request.name().toLowerCase().replaceAll("[^a-z0-9]+", "-");
+
+        Genre genre = new Genre(request.name(), slug);
+
+        return GenreResponse.from(genreRepository.save(genre));
     }
 
-    /** [S1] TODO(hint): admin. GENRE_NOT_FOUND when missing. Keep the slug stable (URLs and clients use it): rename the name only. */
+    /** Rename a genre by ID. */
     public GenreResponse rename(Long id, GenreRequest request) {
-        throw new UnsupportedOperationException("TODO");
+
+        if (!genreRepository.existsByIdAndIsDeleted(id, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
+            throw new ContentException(ContentErrorCode.GENRE_NOT_FOUND);
+        }
+
+        if (genreRepository.existsByNameAndIsDeleted(request.name(), CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
+            throw new ContentException(ContentErrorCode.GENRE_ALREADY_EXISTS);
+        }
+
+        Genre genre = genreRepository.findByIdAndIsDeleted(id, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+                .orElseThrow(() -> new ContentException(ContentErrorCode.GENRE_NOT_FOUND));
+
+        genre.setName(request.name());
+
+        return GenreResponse.from(genreRepository.save(genre));
     }
 }

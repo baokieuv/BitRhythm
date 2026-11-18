@@ -7,6 +7,7 @@ import com.bit_rhythm.content_service.genre.dto.GenreRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -24,11 +25,13 @@ public class AdminGenreController {
     private final ResponseFactory responseFactory;
 
     @PostMapping
+    @PreAuthorize("hasAuthority('write:admin:genres')")
     public ResponseEntity<ApiResponseFormat<Object>> create(@Valid @RequestBody GenreRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS, genreService.create(request));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('write:admin:genres')")
     public ResponseEntity<ApiResponseFormat<Object>> rename(@PathVariable Long id, @Valid @RequestBody GenreRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS, genreService.rename(id, request));
     }

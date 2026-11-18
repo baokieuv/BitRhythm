@@ -1,43 +1,118 @@
 package com.bit_rhythm.content_service.storage;
 
+import io.minio.*;
+import io.minio.errors.ErrorResponseException;
+import io.minio.http.Method;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.Set;
 
 /**
- * TODO(hint): implement with the MinIO SDK; the two clients are beans of MinioConfig:
- *  - presignUpload: getPresignedObjectUrl(Method.PUT, bucket, key, expiry) with @Qualifier("minioPublicClient");
- *  - presignDownload: the same with Method.GET (this is what makes the private audio bucket usable);
- *  - stat: statObject with the primary client, empty when the error code is "NoSuchKey";
- *  - delete: removeObject with the primary client, ignore "not found";
- *  - publicUrl: content.minio.public-endpoint + "/" + bucket + "/" + key (no network call).
+ * A client for interacting with MinIO storage.
  */
 @Component
 public class MinioStorageClient implements StorageClient {
 
+    private static final Set<String> NOT_FOUND_CODES = Set.of("NoSuchKey", "NoSuchObject", "NotFound");
+
+    /** Talks to MinIO over the internal/server-side endpoint (stat, delete). */
+    private final MinioClient internalClient;
+    /** Built with the PUBLIC endpoint (and an explicit region) so presigned URLs are valid for the browser. */
+    private final MinioClient publicClient;
+    private final String publicEndpoint;
+
+    public MinioStorageClient(
+            @Qualifier("minioClient") MinioClient internalClient,
+            @Qualifier("minioPublicClient") MinioClient publicClient,
+            @Value("${content.minio.public-endpoint}") String publicEndpoint) {
+        this.internalClient = internalClient;
+        this.publicClient = publicClient;
+        this.publicEndpoint = stripTrailingSlash(publicEndpoint);
+    }
+
     @Override
     public String presignUpload(String bucket, String key, String contentType, Duration ttl) {
-        throw new UnsupportedOperationException("TODO");
+        try {
+            // Signed locally by the SDK (no network call as long as the public client has a region set).
+            // Note: contentType is not enforced in the signature; the confirm step re-checks it via stat().
+            return publicClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.PUT)
+                            .bucket(bucket)
+                            .object(key)
+                            .expiry((int) ttl.toSeconds())
+                            .build());
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to presign upload for key " + key, e);
+        }
     }
 
     @Override
     public String presignDownload(String bucket, String key, Duration ttl) {
-        throw new UnsupportedOperationException("TODO");
+        try {
+            // Signed locally by the SDK (no network call as long as the public client has a region set).
+            // Note: contentType is not enforced in the signature; the confirm step re-checks it via stat().
+            return publicClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(bucket)
+                            .object(key)
+                            .expiry((int) ttl.toSeconds())
+                            .build());
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to presign download for key " + key, e);
+        }
     }
 
     @Override
     public Optional<StoredObject> stat(String bucket, String key) {
-        throw new UnsupportedOperationException("TODO");
+
+        try {
+            StatObjectResponse response = internalClient.statObject(
+                    StatObjectArgs.builder().bucket(bucket).object(key).build());
+            return Optional.of(new StoredObject(response.size(), response.contentType()));
+        } catch (ErrorResponseException e) {
+            if (isNotFound(e)) {
+                return Optional.empty();
+            }
+            throw new IllegalStateException("Failed to stat key " + key, e);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to stat key " + key, e);
+        }
     }
 
     @Override
     public void delete(String bucket, String key) {
-        throw new UnsupportedOperationException("TODO");
+        try {
+            internalClient.removeObject(
+                    RemoveObjectArgs.builder().bucket(bucket).object(key).build());
+        } catch (ErrorResponseException e) {
+            if (!isNotFound(e)) {
+                throw new IllegalStateException("Failed to delete key " + key, e);
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to delete key " + key, e);
+        }
     }
 
     @Override
     public String publicUrl(String bucket, String key) {
-        throw new UnsupportedOperationException("TODO");
+        if (key == null) {
+            return null;
+        }
+        return publicEndpoint + "/" + bucket + "/" + key;
+    }
+
+    private static boolean isNotFound(ErrorResponseException e) {
+        String code = e.errorResponse() != null ? e.errorResponse().code() : null;
+        return code != null && NOT_FOUND_CODES.contains(code);
+    }
+
+    private static String stripTrailingSlash(String url) {
+        return url != null && url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
     }
 }
