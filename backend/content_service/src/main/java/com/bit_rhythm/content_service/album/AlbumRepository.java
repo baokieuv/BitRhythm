@@ -8,10 +8,13 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface AlbumRepository extends JpaRepository<Album, Long> {
 
     List<Album> findByIdIn(Collection<Long> ids);
+
+    Optional<Album> findByIdAndIsDeleted(Long id, Integer isDeleted);
 
     // Keyset pagination (cursor = id of the last row received, Long.MAX_VALUE for the first page). Ask for size + 1 rows.
     List<Album> findByStatusAndIdLessThanOrderByIdDesc(ContentStatus status, Long cursor, Pageable pageable);          // new albums
