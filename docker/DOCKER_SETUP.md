@@ -41,6 +41,7 @@ Copy-Item .\env\redis.env.example .\env\redis.env
 Copy-Item .\env\shared.env.example .\env\shared.env
 Copy-Item .\env\.env.example .\env\.env
 Copy-Item .\env\user.env.example .\env\user.env
+Copy-Item .\env\content.env.example .\env\content.env
 ```
 
 Edit the copied files before starting the stack:
