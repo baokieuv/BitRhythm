@@ -2,6 +2,7 @@ package com.bit_rhythm.content_service.block;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
@@ -12,6 +13,7 @@ public class UserEventListener {
     private final BlockService blockService;
     private final ObjectMapper objectMapper;
 
+    @KafkaListener(topics = "${user.topics.user-events}")
     public void onEvent(String json) {
         BlockEvent event;
 

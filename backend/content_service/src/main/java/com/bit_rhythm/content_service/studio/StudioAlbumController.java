@@ -8,6 +8,7 @@ import com.bit_rhythm.content_service.common.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -30,11 +31,13 @@ public class StudioAlbumController {
     private final ResponseFactory responseFactory;
 
     @PostMapping
+    @PreAuthorize("hasAuthority('write:studio:album')")
     public ResponseEntity<ApiResponseFormat<Object>> create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody AlbumRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS, studioAlbumService.create(CurrentUser.id(jwt), request));
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('read:studio:album')")
     public ResponseEntity<ApiResponseFormat<Object>> list(@AuthenticationPrincipal Jwt jwt,
                                                           @RequestParam(required = false) Long cursor,
                                                           @RequestParam(defaultValue = "20") int size) {
@@ -42,23 +45,27 @@ public class StudioAlbumController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('write:studio:album')")
     public ResponseEntity<ApiResponseFormat<Object>> update(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
                                                             @Valid @RequestBody AlbumRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS, studioAlbumService.update(CurrentUser.id(jwt), id, request));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('write:studio:album')")
     public ResponseEntity<ApiResponseFormat<Object>> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         studioAlbumService.delete(CurrentUser.id(jwt), id);
         return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
     @PostMapping("/{id}/publish")
+    @PreAuthorize("hasAuthority('write:studio:album')")
     public ResponseEntity<ApiResponseFormat<Object>> publish(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         return responseFactory.response(CoreErrorCode.SUCCESS, studioAlbumService.publish(CurrentUser.id(jwt), id));
     }
 
     @PostMapping("/{id}/unpublish")
+    @PreAuthorize("hasAuthority('write:studio:album')")
     public ResponseEntity<ApiResponseFormat<Object>> unpublish(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         return responseFactory.response(CoreErrorCode.SUCCESS, studioAlbumService.unpublish(CurrentUser.id(jwt), id));
     }

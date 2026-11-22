@@ -78,8 +78,8 @@ public class TrackService {
         long start = Paging.startCursor(cursor);
 
         List<Track> rows = genreId == null
-                ? trackRepository.findByStatusAndIdLessThanOrderByIdDesc(ContentStatus.PUBLISHED, start, pageable)
-                : trackRepository.findByStatusAndGenreIdAndIdLessThanOrderByIdDesc(ContentStatus.PUBLISHED, genreId, start, pageable);
+                ? trackRepository.findByStatusAndIdLessThanExcludingBlockedViewer(ContentStatus.PUBLISHED, start, viewerId, pageable)
+                : trackRepository.findByStatusAndGenreIdAndIdLessThanExcludingBlockedViewer(ContentStatus.PUBLISHED, genreId, start, viewerId, pageable);
 
         return toPage(rows, limit, viewerId);
     }

@@ -19,6 +19,21 @@ public interface AlbumRepository extends JpaRepository<Album, Long> {
     // Keyset pagination (cursor = id of the last row received, Long.MAX_VALUE for the first page). Ask for size + 1 rows.
     List<Album> findByStatusAndIdLessThanOrderByIdDesc(ContentStatus status, Long cursor, Pageable pageable);          // new albums
 
+    @Query("""
+            SELECT a FROM Album a
+            WHERE a.status = :status
+              AND a.id < :cursor
+              AND NOT EXISTS (
+                    SELECT 1 FROM UserBlock b, Artist ar
+                    WHERE ar.id = a.artistId
+                      AND b.blockerId = ar.ownerUserId
+                      AND b.blockedId = :viewerId)
+            ORDER BY a.id DESC""")
+    List<Album> findByStatusAndIdLessThanExcludingBlockedViewer(@Param("status") ContentStatus status,
+                                                                @Param("cursor") Long cursor,
+                                                                @Param("viewerId") Long viewerId,
+                                                                Pageable pageable);
+
     List<Album> findByArtistIdAndStatusAndIdLessThanOrderByIdDesc(Long artistId, ContentStatus status, Long cursor, Pageable pageable);   // artist page
 
     List<Album> findByArtistIdAndIdLessThanOrderByIdDesc(Long artistId, Long cursor, Pageable pageable);               // studio: all statuses

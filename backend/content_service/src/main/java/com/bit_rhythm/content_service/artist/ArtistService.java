@@ -34,9 +34,10 @@ public class ArtistService {
     private final ContentProperties properties;
 
     /** Public artist page. */
-    public ArtistResponse get(Long artistId) {
+    public ArtistResponse get(Long artistId, Long viewerId) {
         Artist artist = artistRepository.findByOwnerUserIdAndIsDeleted(artistId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
                 .orElseThrow(() -> new ContentException(ContentErrorCode.ARTIST_NOT_FOUND, "id " + artistId));
+
         return toResponse(artist);
     }
 

@@ -26,11 +26,6 @@ public class UserBlock extends BaseEntity {
     @Column(name = "blocked_id", nullable = false)
     private Long blockedId;
 
-    public UserBlock(Long blockerId, Long blockedId) {
-        this.blockerId = blockerId;
-        this.blockedId = blockedId;
-    }
-
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();

@@ -74,8 +74,8 @@ public class AlbumService {
     public CursorPage<AlbumResponse> listPublished(Long cursor, int size, Long viewerId) {
         int limit = Paging.clampSize(size, properties.pagination().maxPageSize());
 
-        List<Album> fetched = albumRepository.findByStatusAndIdLessThanOrderByIdDesc(
-                ContentStatus.PUBLISHED, Paging.startCursor(cursor), PageRequest.of(0, limit + 1));
+        List<Album> fetched = albumRepository.findByStatusAndIdLessThanExcludingBlockedViewer(
+                ContentStatus.PUBLISHED, Paging.startCursor(cursor), viewerId, PageRequest.of(0, limit + 1));
 
         return toPage(fetched, limit, viewerId);
     }

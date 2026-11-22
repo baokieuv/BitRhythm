@@ -9,6 +9,7 @@ import com.bit_rhythm.content_service.track.dto.TrackRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -32,11 +33,13 @@ public class StudioTrackController {
     private final ResponseFactory responseFactory;
 
     @PostMapping
+    @PreAuthorize("hasAuthority('write:studio:track')")
     public ResponseEntity<ApiResponseFormat<Object>> create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody TrackRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS, studioTrackService.create(CurrentUser.id(jwt), request));
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('read:studio:track')")
     public ResponseEntity<ApiResponseFormat<Object>> list(@AuthenticationPrincipal Jwt jwt,
                                                           @RequestParam(required = false) Long cursor,
                                                           @RequestParam(defaultValue = "20") int size) {
@@ -44,39 +47,46 @@ public class StudioTrackController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('read:studio:track')")
     public ResponseEntity<ApiResponseFormat<Object>> get(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         return responseFactory.response(CoreErrorCode.SUCCESS, studioTrackService.get(CurrentUser.id(jwt), id));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('write:studio:track')")
     public ResponseEntity<ApiResponseFormat<Object>> update(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
                                                             @Valid @RequestBody TrackRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS, studioTrackService.update(CurrentUser.id(jwt), id, request));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('write:studio:track')")
     public ResponseEntity<ApiResponseFormat<Object>> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         studioTrackService.delete(CurrentUser.id(jwt), id);
         return responseFactory.response(CoreErrorCode.SUCCESS, null);
     }
 
     @PostMapping("/{id}/audio/upload-url")
+    @PreAuthorize("hasAuthority('write:studio:track')")
     public ResponseEntity<ApiResponseFormat<Object>> audioUploadUrl(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
                                                                     @Valid @RequestBody UploadUrlRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS, uploadService.createAudioUploadUrl(CurrentUser.id(jwt), id, request));
     }
 
     @PostMapping("/{id}/audio/confirm")
+    @PreAuthorize("hasAuthority('write:studio:track')")
     public ResponseEntity<ApiResponseFormat<Object>> confirmAudio(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         return responseFactory.response(CoreErrorCode.SUCCESS, uploadService.confirmAudio(CurrentUser.id(jwt), id));
     }
 
     @PostMapping("/{id}/publish")
+    @PreAuthorize("hasAuthority('write:studio:track')")
     public ResponseEntity<ApiResponseFormat<Object>> publish(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         return responseFactory.response(CoreErrorCode.SUCCESS, studioTrackService.publish(CurrentUser.id(jwt), id));
     }
 
     @PostMapping("/{id}/unpublish")
+    @PreAuthorize("hasAuthority('write:studio:track')")
     public ResponseEntity<ApiResponseFormat<Object>> unpublish(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         return responseFactory.response(CoreErrorCode.SUCCESS, studioTrackService.unpublish(CurrentUser.id(jwt), id));
     }

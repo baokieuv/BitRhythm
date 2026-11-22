@@ -20,7 +20,7 @@ public record UserProperties(
     public record Minio(String endpoint, String publicEndpoint, String accessKey, String secretKey) {
     }
 
-    public record Topics(String notification, String authEvents) {
+    public record Topics(String notification, String authEvents, String userEvents) {
     }
 
     public record Kafka(int maxRetries, Duration initialBackoff, Duration maxBackoff) {

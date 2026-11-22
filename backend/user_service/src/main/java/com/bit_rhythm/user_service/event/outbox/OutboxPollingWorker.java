@@ -45,6 +45,8 @@ public class OutboxPollingWorker {
                 switch (AggregateType.fromName(event.getAggregateType())) {
                     case USER:
                         // Handle user events
+                        kafkaTemplate.send(appProperties.topics().userEvents(), event.getAggregateId(), event.getPayload())
+                                .get(SEND_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                         break;
                     case ARTIST:
                         // Handle artist events

@@ -74,6 +74,7 @@ content:
   topics:
     content-events: ${CONTENT_EVENTS_TOPIC:content.events}    # [S2] TRACK_PUBLISHED ... (consumed by user-service / notification-service)
     auth-events: ${AUTH_EVENTS_TOPIC:auth.events}             # [S2] USER_DELETED / USER_DISABLED published by auth-service
+    user-events: ${USER_EVENTS_TOPIC:user.events}                # [S2] USER_BLOCKED published by user-service
   kafka:
     max-retries: 5
     initial-backoff: 1s

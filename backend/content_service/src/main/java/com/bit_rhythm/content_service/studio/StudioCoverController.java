@@ -8,6 +8,7 @@ import com.bit_rhythm.content_service.studio.dto.UploadUrlRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,6 +26,7 @@ public class StudioCoverController {
     private final ResponseFactory responseFactory;
 
     @PostMapping("/upload-url")
+    @PreAuthorize("hasAuthority('write:studio:cover')")
     public ResponseEntity<ApiResponseFormat<Object>> uploadUrl(@AuthenticationPrincipal Jwt jwt,
                                                                @Valid @RequestBody UploadUrlRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS, uploadService.createCoverUploadUrl(CurrentUser.id(jwt), request));

@@ -28,8 +28,8 @@ public class ArtistController {
     private final ResponseFactory responseFactory;
 
     @GetMapping
-    public ResponseEntity<ApiResponseFormat<Object>> get(@PathVariable Long id) {
-        return responseFactory.response(CoreErrorCode.SUCCESS, artistService.get(id));
+    public ResponseEntity<ApiResponseFormat<Object>> get(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        return responseFactory.response(CoreErrorCode.SUCCESS, artistService.get(id, CurrentUser.id(jwt)));
     }
 
     @GetMapping("/tracks")

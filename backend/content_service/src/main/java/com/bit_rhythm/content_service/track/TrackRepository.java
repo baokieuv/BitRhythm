@@ -21,8 +21,6 @@ public interface TrackRepository extends JpaRepository<Track, Long> {
     // Keyset pagination (cursor = id of the last row received, Long.MAX_VALUE for the first page). Ask for size + 1 rows.
     List<Track> findByStatusAndIdLessThanOrderByIdDesc(ContentStatus status, Long cursor, Pageable pageable);   // new releases
 
-    List<Track> findByStatusAndGenreIdAndIdLessThanOrderByIdDesc(ContentStatus status, Long genreId, Long cursor, Pageable pageable);
-
     List<Track> findByArtistIdAndStatusAndIdLessThanOrderByIdDesc(Long artistId, ContentStatus status, Long cursor, Pageable pageable);   // artist page
 
     List<Track> findByArtistIdAndIdLessThanOrderByIdDesc(Long artistId, Long cursor, Pageable pageable);   // studio: all statuses
@@ -73,4 +71,37 @@ public interface TrackRepository extends JpaRepository<Track, Long> {
     ArtistTotals totalsOfArtist(@Param("artistId") Long artistId);
 
     List<Track> findByIdLessThanOrderByIdDesc(Long cursor, Pageable pageable);
+
+    @Query("""
+            SELECT t FROM Track t
+            WHERE t.status = :status
+              AND t.id < :cursor
+              AND NOT EXISTS (
+                    SELECT 1 FROM UserBlock b, Artist ar
+                    WHERE ar.id = t.artistId
+                      AND b.blockerId = ar.ownerUserId
+                      AND b.blockedId = :viewerId)
+            ORDER BY t.id DESC""")
+    List<Track> findByStatusAndIdLessThanExcludingBlockedViewer(@Param("status") ContentStatus status,
+                                                                @Param("cursor") Long cursor,
+                                                                @Param("viewerId") Long viewerId,
+                                                                Pageable pageable);
+
+    /** Same as above, restricted to one genre. */
+    @Query("""
+            SELECT t FROM Track t
+            WHERE t.status = :status
+              AND t.genreId = :genreId
+              AND t.id < :cursor
+              AND NOT EXISTS (
+                    SELECT 1 FROM UserBlock b, Artist ar
+                    WHERE ar.id = t.artistId
+                      AND b.blockerId = ar.ownerUserId
+                      AND b.blockedId = :viewerId)
+            ORDER BY t.id DESC""")
+    List<Track> findByStatusAndGenreIdAndIdLessThanExcludingBlockedViewer(@Param("status") ContentStatus status,
+                                                                          @Param("genreId") Long genreId,
+                                                                          @Param("cursor") Long cursor,
+                                                                          @Param("viewerId") Long viewerId,
+                                                                          Pageable pageable);
 }
