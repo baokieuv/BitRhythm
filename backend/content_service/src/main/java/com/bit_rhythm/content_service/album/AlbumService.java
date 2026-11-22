@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -34,7 +35,7 @@ public class AlbumService {
     /** Get an album by its ID, if it's published or if the viewer is the owner. */
     public AlbumResponse get(Long albumId, Long viewerId) {
 
-        Album album = albumRepository.findByIdAndIsDeleted(albumId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+        Album album = albumRepository.findById(albumId)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.ALBUM_NOT_FOUND, "id " + albumId));
 
         Artist artist = artistRepository.findByOwnerUserIdAndIsDeleted(album.getArtistId(), CommonEnums.DeletedStatus.NOT_DELETED.getCode())
@@ -52,33 +53,41 @@ public class AlbumService {
     /** Get a page of published albums, newest first. */
     public CursorPage<AlbumResponse> listPublished(Long cursor, int size, Long viewerId) {
         int limit = Paging.clampSize(size, properties.pagination().maxPageSize());
-        long lastExamined = cursor == null ? 0L : cursor;
 
-        List<Album> albums = albumRepository.findByStatusAndIdLessThanOrderByIdDesc(
+        List<Album> fetched = albumRepository.findByStatusAndIdLessThanOrderByIdDesc(
                 ContentStatus.PUBLISHED, Paging.startCursor(cursor), PageRequest.of(0, limit + 1));
 
-        Map<Long, Artist> artists = artistRepository.findByIdIn(
-                albums.stream().map(Album::getArtistId).collect(Collectors.toSet()))
-                .stream().collect(Collectors.toMap(Artist::getOwnerUserId, Function.identity()));
+        boolean hasMore = fetched.size() > limit;
+        List<Album> albums = hasMore ? fetched.subList(0, limit) : fetched;
 
+        Map<Long, Artist> artists = artistRepository.findByOwnerUserIdInAndIsDeleted(
+                        albums.stream().map(Album::getArtistId).collect(Collectors.toSet()), CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+                .stream()
+                .collect(Collectors.toMap(Artist::getId, Function.identity(), (a, b) -> a));
 
-        List<AlbumResponse> responses = albums.stream().map(album -> {
+        List<AlbumResponse> responses = new ArrayList<>(albums.size());
+        for (Album album : albums) {
+            try {
+                if (album.getStatus() != ContentStatus.PUBLISHED) {
+                    throw new ContentException(ContentErrorCode.ALBUM_NOT_FOUND, "id " + album.getId());
+                }
 
-            if (album.getStatus() != ContentStatus.PUBLISHED) {
-                throw new ContentException(ContentErrorCode.ALBUM_NOT_FOUND, "id " + album.getId());
+                Artist artist = artists.get(album.getArtistId());
+                if (artist == null) {
+                    throw new ContentException(ContentErrorCode.ARTIST_NOT_FOUND, "id " + album.getArtistId());
+                }
+
+                String coverUrl = storageClient.publicUrl(properties.cover().bucket(), album.getCoverKey());
+                responses.add(new AlbumResponse(album, artist, coverUrl));
+            } catch (Exception e) {
+                // Skip the bad record, keep the rest of the page
+                log.warn("Skipping album {} in published listing: {}", album.getId(), e.getMessage());
             }
+        }
 
-            if (!artists.containsKey(album.getArtistId())) {
-                throw new ContentException(ContentErrorCode.ARTIST_NOT_FOUND, "id " + album.getArtistId());
-            }
-
-            String coverUrl = storageClient.publicUrl(properties.cover().bucket(), album.getCoverKey());
-            return new AlbumResponse(album, artists.get(album.getArtistId()), coverUrl);
-        }).toList();
-
-        boolean mayHaveMore = !albums.isEmpty() && albums.size() > limit;
-
-        Long nextCursor = (responses.size() == limit || mayHaveMore) ? lastExamined : null;
+        // Cursor is based on the last album *examined* (not the last one returned),
+        // so skipped records never cause the same page to be re-fetched.
+        Long nextCursor = hasMore ? albums.getLast().getId() : null;
         return new CursorPage<>(responses, nextCursor);
     }
 

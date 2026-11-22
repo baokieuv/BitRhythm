@@ -40,6 +40,6 @@ public record ContentProperties(
     public record Playback(int minPlaySeconds) {
     }
 
-    public record Playlist(int maxTracks) {
+    public record Playlist(int maxTracks, int maxPlaylistsPerUser) {
     }
 }

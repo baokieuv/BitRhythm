@@ -10,10 +10,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface TrackRepository extends JpaRepository<Track, Long> {
 
-    List<Track> findByIdIn(Collection<Long> ids);
+    List<Track> findByIdInAndIsDeleted(Collection<Long> ids, Integer isDeleted);
+
+    Optional<Track> findByIdAndIsDeleted(Long id, Integer isDeleted);
 
     // Keyset pagination (cursor = id of the last row received, Long.MAX_VALUE for the first page). Ask for size + 1 rows.
     List<Track> findByStatusAndIdLessThanOrderByIdDesc(ContentStatus status, Long cursor, Pageable pageable);   // new releases

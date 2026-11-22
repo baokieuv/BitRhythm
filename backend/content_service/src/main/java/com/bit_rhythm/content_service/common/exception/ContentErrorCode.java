@@ -40,7 +40,8 @@ public enum ContentErrorCode implements ApiResponseCode {
     REPORT_ALREADY_OPEN(false, "CONTENT0020", "You already reported this content", HttpStatus.CONFLICT),
     REPORT_ALREADY_CLOSED(false, "CONTENT0021", "This report is already closed", HttpStatus.CONFLICT),
 
-    GENRE_ALREADY_EXISTS(false, "CONTENT0022", "This genre already exists", HttpStatus.CONFLICT);
+    GENRE_ALREADY_EXISTS(false, "CONTENT0022", "This genre already exists", HttpStatus.CONFLICT),
+    PLAYLIST_LIMIT_REACHED(false, "CONTENT0023", "You have reached the maximum number of playlists per user", HttpStatus.CONFLICT),;
 
     private final boolean success;
     private final String code;

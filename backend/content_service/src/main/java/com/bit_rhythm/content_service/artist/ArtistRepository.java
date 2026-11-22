@@ -15,6 +15,8 @@ public interface ArtistRepository extends JpaRepository<Artist, Long> {
 
     List<Artist> findByIdIn(Collection<Long> ids);   // artist names of a page of tracks, in ONE query
 
+    List<Artist> findByOwnerUserIdInAndIsDeleted(Collection<Long> ownerUserIds, Integer isDeleted);
+
     Optional<Artist> findByOwnerUserIdAndIsDeleted(Long ownerUserId, Integer isDeleted);
 
     /** Prefix search (uses idx_artist_name). The escape character is '!': escape %, _ and ! in the prefix before calling (see UserSearchService of user-service). */

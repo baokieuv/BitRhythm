@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PlaylistRepository extends JpaRepository<Playlist, Long> {
 
@@ -21,4 +22,10 @@ public interface PlaylistRepository extends JpaRepository<Playlist, Long> {
     int addTracks(@Param("id") Long id, @Param("delta") int delta);
 
     List<Playlist> findByOwnerUserId(Long ownerUserId);   // [S2] account deleted
+
+    int countByOwnerUserId(Long ownerUserId);
+
+    Optional<Playlist> findByIdAndIsDeleted(Long id, Integer isDeleted);
+
+    List<Playlist> findByOwnerUserIdOrderByCreatedAtDesc(Long ownerUserId, Long cursor, Pageable pageable);
 }

@@ -2,11 +2,13 @@ package com.bit_rhythm.content_service.artist;
 
 import com.bit_rhythm.content_service.artist.dto.ArtistResponse;
 import com.bit_rhythm.content_service.artist.dto.UpdateArtistRequest;
+import com.bit_rhythm.content_service.block.BlockRepository;
 import com.bit_rhythm.content_service.common.exception.ContentErrorCode;
 import com.bit_rhythm.content_service.common.exception.ContentException;
 import com.bit_rhythm.content_service.config.ContentProperties;
 import com.bit_rhythm.content_service.storage.StorageClient;
 import com.bit_rhythm.content_service.storage.StoredObject;
+import com.bit_rhythm.core.common.CommonEnums;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -34,7 +36,7 @@ public class ArtistService {
 
     /** Public artist page. */
     public ArtistResponse get(Long artistId) {
-        Artist artist = artistRepository.findById(artistId)
+        Artist artist = artistRepository.findByOwnerUserIdAndIsDeleted(artistId, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
                 .orElseThrow(() -> new ContentException(ContentErrorCode.ARTIST_NOT_FOUND, "id " + artistId));
         return toResponse(artist);
     }

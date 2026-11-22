@@ -13,6 +13,8 @@ public interface PlaylistTrackRepository extends JpaRepository<PlaylistTrack, Lo
 
     List<PlaylistTrack> findByPlaylistIdOrderByPositionAsc(Long playlistId);   // reorder: the whole playlist (max content.playlist.max-tracks)
 
+    List<PlaylistTrack> findByPlaylistIdOrderByPositionAsc(Long playlistId, Long cursor, Pageable pageable);   // pagination by id: cursor = id of the last row received (Long.MAX_VALUE for the first page). Ask for size + 1 rows.
+
     /** Pagination by position: cursor = position of the last row received (0 for the first page). Ask for size + 1 rows. */
     List<PlaylistTrack> findByPlaylistIdAndPositionGreaterThanOrderByPositionAsc(Long playlistId, int position, Pageable pageable);
 

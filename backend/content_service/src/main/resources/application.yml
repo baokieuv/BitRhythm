@@ -84,6 +84,7 @@ content:
     min-play-seconds: 30        # a play counts after this many seconds of listening
   playlist:
     max-tracks: 500
+    max-playlists-per-user: 20
 
 management:
   endpoints:

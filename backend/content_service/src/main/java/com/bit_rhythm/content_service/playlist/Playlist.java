@@ -1,5 +1,6 @@
 package com.bit_rhythm.content_service.playlist;
 
+import com.bit_rhythm.content_service.playlist.dto.PlaylistRequest;
 import com.bit_rhythm.core.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -47,6 +48,21 @@ public class Playlist extends BaseEntity {
     public Playlist(Long ownerUserId, String name) {
         this.ownerUserId = ownerUserId;
         this.name = name;
+        this.trackCount = 0;
+    }
+
+    public Playlist(PlaylistRequest request, Long ownerUserId) {
+        this.ownerUserId = ownerUserId;
+        this.name = request.name();
+        this.description = request.description();
+        this.visibility = request.visibility();
+        this.trackCount = 0;
+    }
+
+    public void update(PlaylistRequest request) {
+        this.name = request.name();
+        this.description = request.description();
+        this.visibility = request.visibility();
     }
 
     @PrePersist
