@@ -1,6 +1,7 @@
 package com.bit_rhythm.user_service.event;
 
 import com.bit_rhythm.core.outbox.EventSerializer;
+import com.bit_rhythm.user_service.block.BlockEvent;
 import com.bit_rhythm.user_service.common.enums.AggregateType;
 import com.bit_rhythm.user_service.event.outbox.UserOutboxEntity;
 import com.bit_rhythm.user_service.event.outbox.UserOutboxRepository;
@@ -31,7 +32,7 @@ public class UserEventPublisher {
     /**
      * MANDATORY: must be called inside the transaction that inserts the follow, so the event exists if and only if the
      * follow was committed.
-     *
+     * <p>
      * The eventId is DETERMINISTIC ("follow:{follower}:{followee}"): follow, unfollow, follow again produces the same id and
      * notification-service (unique event id + channel) notifies the person only once.
      * email is null: NEW_FOLLOWER is delivered in the app only.
@@ -93,6 +94,34 @@ public class UserEventPublisher {
                     0,                          // not published yet
                     LocalDateTime.now()));
             log.info("Saved ARTIST_VERIFICATION_RESULT event {} to outbox", event.eventId());
+        } catch (Exception ex) {
+            throw new IllegalStateException("Failed to serialize or save the notification event to the outbox", ex);
+        }
+    }
+
+    public void publishUserBlockedEvent(Long blockerUserId, Long blockedUserId, boolean isBlocked) {
+
+        BlockEvent event = new BlockEvent(
+                "user_blocked:" + Instant.now().toEpochMilli() + ":" + blockedUserId,
+                NotificationEventType.USER_BLOCKED.name(),
+                EVENT_VERSION,
+                blockerUserId,
+                blockedUserId,
+                isBlocked,
+                new BlockEvent.Metadata(SOURCE, MDC.get("correlationId"))
+        );
+
+        try {
+            String payload = EventSerializer.serialize(event);
+            outboxRepository.save(new UserOutboxEntity(
+                    null,                          // generated id
+                    AggregateType.USER.name(),          // aggregate type
+                    blockedUserId.toString(),          // aggregate id: events of one recipient stay in order
+                    NotificationEventType.USER_BLOCKED.name(),
+                    payload,
+                    0,                          // not published yet
+                    LocalDateTime.now()));
+            log.info("Saved USER_BLOCKED event {} to outbox", event.eventId());
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to serialize or save the notification event to the outbox", ex);
         }

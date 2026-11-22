@@ -7,6 +7,7 @@ import com.bit_rhythm.user_service.common.Paging;
 import com.bit_rhythm.user_service.common.exception.UserErrorCode;
 import com.bit_rhythm.user_service.common.exception.UserException;
 import com.bit_rhythm.user_service.config.UserProperties;
+import com.bit_rhythm.user_service.event.UserEventPublisher;
 import com.bit_rhythm.user_service.follow.FollowRepository;
 import com.bit_rhythm.user_service.profile.ProfileRepository;
 import com.bit_rhythm.user_service.profile.UserProfile;
@@ -16,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.*;
@@ -32,6 +34,7 @@ public class BlockService {
     private final FollowRepository followRepository;
     private final TransactionTemplate transactionTemplate;
     private final StorageClient storageClient;
+    private final UserEventPublisher eventPublisher;
     private final UserProperties userProperties;
 
     /**
@@ -57,6 +60,7 @@ public class BlockService {
                 blockRepository.saveAndFlush(new UserBlock(blockerId, blockedId));   // flush: a duplicate fails HERE
                 removeFollow(blockerId, blockedId);
                 removeFollow(blockedId, blockerId);
+                eventPublisher.publishUserBlockedEvent(blockerId, blockedId, true);
             });
         } catch (DataIntegrityViolationException alreadyBlocked) {
             // identical request won the race: nothing left to do
@@ -64,7 +68,9 @@ public class BlockService {
     }
 
     /** BlockRepository.deletePair. Follows are NOT restored. */
+    @Transactional
     public void unblock(Long blockerId, Long blockedId) {
+        eventPublisher.publishUserBlockedEvent(blockerId, blockedId, false);
         blockRepository.deletePair(blockerId, blockedId);
     }
 

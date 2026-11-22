@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** [S2] The user's side of "become a verified artist". */
 @RestController
-@RequestMapping("/users/me/artist-verification")
+@RequestMapping("/api/users/me/artist-verification")
 @RequiredArgsConstructor
 public class ArtistVerificationController {
 

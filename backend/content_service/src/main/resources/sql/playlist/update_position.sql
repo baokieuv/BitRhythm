@@ -1,0 +1,1 @@
+UPDATE playlist_tracks SET position = :position WHERE id = :id

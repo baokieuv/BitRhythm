@@ -39,7 +39,7 @@ public class AdminVerificationController {
     public ResponseEntity<ApiResponseFormat<Object>> approve(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
                                                              @Valid @RequestBody(required = false) ReviewRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS,
-                verificationService.approve(id, CurrentUser.id(jwt), request == null ? null : request.note()));
+                verificationService.approve(id, CurrentUser.id(jwt), request));
     }
 
     @PostMapping("/{id}/reject")
@@ -47,6 +47,6 @@ public class AdminVerificationController {
     public ResponseEntity<ApiResponseFormat<Object>> reject(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
                                                             @Valid @RequestBody(required = false) ReviewRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS,
-                verificationService.reject(id, CurrentUser.id(jwt), request == null ? null : request.note()));
+                verificationService.reject(id, CurrentUser.id(jwt), request));
     }
 }

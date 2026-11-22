@@ -1,0 +1,6 @@
+package com.bit_rhythm.content_service.playlist.dto;
+
+import jakarta.validation.constraints.NotNull;
+
+public record AddTrackRequest(@NotNull Long trackId) {
+}
