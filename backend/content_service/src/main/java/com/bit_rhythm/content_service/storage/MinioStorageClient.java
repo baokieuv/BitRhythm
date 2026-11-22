@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
@@ -72,6 +73,21 @@ public class MinioStorageClient implements StorageClient {
             throw new ApiException(CoreErrorCode.INTERNAL_SERVER_ERROR, "Cannot stat " + bucket + "/" + key);
         } catch (Exception e) {
             throw new ApiException(CoreErrorCode.INTERNAL_SERVER_ERROR, "Cannot stat " + bucket + "/" + key);
+        }
+    }
+
+    /** Download an object from the storage. */
+    @Override
+    public void download(String bucket, String key, Path target){
+        try {
+            server.downloadObject(
+                    io.minio.DownloadObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(key)
+                            .filename(target.toString())
+                            .build());
+        } catch (Exception e) {
+            throw new ApiException(CoreErrorCode.INTERNAL_SERVER_ERROR, "Cannot download " + bucket + "/" + key);
         }
     }
 

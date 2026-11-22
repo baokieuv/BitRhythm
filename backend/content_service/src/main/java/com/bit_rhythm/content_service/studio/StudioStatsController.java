@@ -6,6 +6,7 @@ import com.bit_rhythm.core.utils.ResponseFactory;
 import com.bit_rhythm.content_service.common.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +23,7 @@ public class StudioStatsController {
     private final ResponseFactory responseFactory;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('read:studio:stats')")
     public ResponseEntity<ApiResponseFormat<Object>> stats(@AuthenticationPrincipal Jwt jwt) {
         return responseFactory.response(CoreErrorCode.SUCCESS, studioStatsService.stats(CurrentUser.id(jwt)));
     }

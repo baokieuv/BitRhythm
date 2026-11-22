@@ -29,4 +29,10 @@ public class StudioCoverController {
                                                                @Valid @RequestBody UploadUrlRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS, uploadService.createCoverUploadUrl(CurrentUser.id(jwt), request));
     }
+
+//    @PostMapping("/confirm")
+//    public ResponseEntity<ApiResponseFormat<Object>> confirm(@AuthenticationPrincipal Jwt jwt,
+//                                                               @Valid @RequestBody UploadUrlRequest request) {
+//        return responseFactory.response(CoreErrorCode.SUCCESS, uploadService.confirmCover(CurrentUser.id(jwt), request.key()));
+//    }
 }

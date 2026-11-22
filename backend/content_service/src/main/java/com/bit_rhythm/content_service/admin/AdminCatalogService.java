@@ -4,10 +4,20 @@ import com.bit_rhythm.content_service.album.dto.AlbumResponse;
 import com.bit_rhythm.content_service.common.ContentStatus;
 import com.bit_rhythm.content_service.common.CursorPage;
 import com.bit_rhythm.content_service.track.dto.TrackResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-/** Moderation of the catalog (ROLE_ADMIN). A taken-down item is TAKEN_DOWN, a status the owner cannot change. */
+/**
+ * Moderation of the catalog (ROLE_ADMIN). A taken-down item is TAKEN_DOWN, a status the owner cannot change: the studio refuses to
+ * publish it, and only restore*() moves it on (to HIDDEN; the owner decides whether to publish again).
+ *
+ * take-down and restore are @Transactional so they join the transaction of ReportService.resolve when called from it: the report is
+ * closed and the content is taken down together, or neither.
+ */
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class AdminCatalogService {
 
     /** [S1] TODO(hint): status == null -> every status; newest first, cursor pagination; mapped with TrackService.toResponses (viewer = the admin). */

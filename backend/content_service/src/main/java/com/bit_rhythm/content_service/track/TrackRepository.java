@@ -71,4 +71,6 @@ public interface TrackRepository extends JpaRepository<Track, Long> {
 
     @Query("SELECT COALESCE(SUM(t.playCount),0L) AS plays, COALESCE(SUM(t.likeCount),0L) AS likes FROM Track t WHERE t.artistId = :artistId")
     ArtistTotals totalsOfArtist(@Param("artistId") Long artistId);
+
+    List<Track> findByIdLessThanOrderByIdDesc(Long cursor, Pageable pageable);
 }

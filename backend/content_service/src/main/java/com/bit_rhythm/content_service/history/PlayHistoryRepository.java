@@ -42,4 +42,9 @@ public interface PlayHistoryRepository extends JpaRepository<PlayHistory, Long> 
     @Query("SELECT p.trackId AS trackId, COUNT(p) AS plays FROM PlayHistory p WHERE p.playedAt >= :since "
             + "GROUP BY p.trackId ORDER BY COUNT(p) DESC")
     List<TrackPlayCount> countPlaysSince(@Param("since") Instant since, Pageable pageable);
+
+    @Transactional
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM PlayHistory h WHERE h.trackId = :trackId")
+    int deleteAllOfTrack(@Param("trackId") Long trackId);   // [S2] track deleted: delete all history of the track
 }

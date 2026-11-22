@@ -1,5 +1,6 @@
 package com.bit_rhythm.content_service.storage;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Optional;
 
@@ -19,6 +20,8 @@ public interface StorageClient {
     Optional<StoredObject> stat(String bucket, String key);
 
     void delete(String bucket, String key);
+
+    void download(String bucket, String key, Path target);
 
     /** Permanent URL of an object of a PUBLIC bucket (covers). Null key -> null. */
     String publicUrl(String bucket, String key);

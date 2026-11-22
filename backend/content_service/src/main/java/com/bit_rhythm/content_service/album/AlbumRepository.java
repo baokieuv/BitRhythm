@@ -27,5 +27,9 @@ public interface AlbumRepository extends JpaRepository<Album, Long> {
     @Query("SELECT a FROM Album a WHERE a.title LIKE CONCAT(:prefix, '%') ESCAPE '!' AND a.status = com.bit_rhythm.content_service.common.ContentStatus.PUBLISHED AND a.id < :cursor ORDER BY a.id DESC")
     List<Album> searchPublishedByTitlePrefix(@Param("prefix") String prefix, @Param("cursor") Long cursor, Pageable pageable);
 
+    long countByArtistIdAndStatus(Long artistId, ContentStatus status);
+
     List<Album> findByArtistId(Long artistId);   // [S2] account deleted: hide everything of the artist
+
+    List<Album> findByIdLessThanOrderByIdDesc(Long cursor, Pageable pageable);
 }
