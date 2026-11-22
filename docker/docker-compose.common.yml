@@ -73,6 +73,11 @@ services:
     restart: "no"
     env_file:
       - env/minio.env
+    environment:
+      # must match content.audio.bucket / content.cover.bucket of content-service
+      AUDIO_BUCKET: ${AUDIO_BUCKET:-music-streaming}
+      COVER_BUCKET: ${COVER_BUCKET:-music-assets}
+
     depends_on:
       minio:
         condition: service_started
@@ -83,10 +88,23 @@ services:
         until aws --endpoint-url http://minio:9000 s3 ls; do
           sleep 2
         done
-        aws --endpoint-url http://minio:9000 s3 mb s3://music-streaming || true
+
+        # AUDIO bucket: PRIVATE. Served through presigned URLs only, so it must never have a public policy
+        # (this also removes a public policy set by an earlier version).
+        aws --endpoint-url http://minio:9000 s3 mb s3://$$AUDIO_BUCKET || true
+        aws --endpoint-url http://minio:9000 s3api delete-bucket-policy --bucket $$AUDIO_BUCKET || true
+
+        # COVER bucket: only covers/* is publicly readable (object keys are "covers/{userId}/{uuid}.{ext}").
+        aws --endpoint-url http://minio:9000 s3 mb s3://$$COVER_BUCKET || true
         aws --endpoint-url http://minio:9000 s3api put-bucket-policy \
-          --bucket music-streaming \
-          --policy '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":["s3:GetObject"],"Resource":["arn:aws:s3:::music-streaming/*"]}]}'
+          --bucket $$COVER_BUCKET \
+          --policy "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":[\"s3:GetObject\"],\"Resource\":[\"arn:aws:s3:::$$COVER_BUCKET/covers/*\"]}]}"
+
+        aws --endpoint-url http://minio:9000 s3 mb s3://user-assets || true
+        aws --endpoint-url http://minio:9000 s3api put-bucket-policy \
+          --bucket user-assets \
+          --policy '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":["s3:GetObject"],"Resource":["arn:aws:s3:::user-assets/avatars/*"]}]}'
+          
     networks:
       - common_network
 
