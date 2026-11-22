@@ -8,6 +8,7 @@ import com.bit_rhythm.content_service.report.dto.ResolveReportRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +29,7 @@ public class AdminReportController {
     private final ResponseFactory responseFactory;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('read:admin:reports')")
     public ResponseEntity<ApiResponseFormat<Object>> queue(@RequestParam(defaultValue = "OPEN") ReportStatus status,
                                                            @RequestParam(required = false) Long cursor,
                                                            @RequestParam(defaultValue = "20") int size) {
@@ -35,6 +37,7 @@ public class AdminReportController {
     }
 
     @PostMapping("/{id}/resolve")
+    @PreAuthorize("hasAuthority('write:admin:reports')")
     public ResponseEntity<ApiResponseFormat<Object>> resolve(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
                                                              @Valid @RequestBody ResolveReportRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS,
@@ -42,6 +45,7 @@ public class AdminReportController {
     }
 
     @PostMapping("/{id}/dismiss")
+    @PreAuthorize("hasAuthority('write:admin:reports')")
     public ResponseEntity<ApiResponseFormat<Object>> dismiss(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
                                                              @RequestParam(required = false) String note) {
         return responseFactory.response(CoreErrorCode.SUCCESS, reportService.dismiss(id, CurrentUser.id(jwt), note));

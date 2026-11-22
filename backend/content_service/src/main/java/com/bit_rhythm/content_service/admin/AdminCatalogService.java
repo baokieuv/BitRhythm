@@ -16,7 +16,7 @@ public class AdminCatalogService {
     }
 
     /** [S1] TODO(hint): status TAKEN_DOWN (TRACK_NOT_FOUND if missing); idempotent. The track disappears from lists, search and streaming; playlists keep their rows but skip it. */
-    public void takeDownTrack(Long trackId) {
+    public void takeDownTrack(Long trackId, Long adminId) {
         throw new UnsupportedOperationException("TODO");
     }
 
@@ -31,7 +31,7 @@ public class AdminCatalogService {
     }
 
     /** [S1] TODO(hint): status TAKEN_DOWN; the tracks of the album are not touched (take them down one by one if needed). */
-    public void takeDownAlbum(Long albumId) {
+    public void takeDownAlbum(Long albumId, Long adminId) {
         throw new UnsupportedOperationException("TODO");
     }
 

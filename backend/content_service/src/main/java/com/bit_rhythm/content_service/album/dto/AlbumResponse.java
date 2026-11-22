@@ -33,4 +33,18 @@ public record AlbumResponse(
                 false
         );
     }
+
+    public AlbumResponse(Album album, Artist artist, String coverUrl, boolean saved) {
+        this(
+                album.getId(),
+                album.getArtistId(),
+                artist.getName(),
+                album.getTitle(),
+                coverUrl,
+                album.getReleaseDate(),
+                album.getStatus(),
+                album.getPublishedAt(),
+                saved
+        );
+    }
 }

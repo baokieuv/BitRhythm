@@ -1,5 +1,6 @@
 package com.bit_rhythm.content_service.report;
 
+import com.bit_rhythm.content_service.report.dto.CreateReportRequest;
 import com.bit_rhythm.core.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -63,6 +64,35 @@ public class ContentReport extends BaseEntity {
         this.targetId = targetId;
         this.reason = reason;
         this.details = details;
+    }
+
+    public ContentReport(CreateReportRequest request, Long reporterUserId) {
+        this.reporterUserId = reporterUserId;
+        this.targetType = request.targetType();
+        this.targetId = request.targetId();
+        this.reason = request.reason();
+        this.details = request.details();
+
+    }
+
+    public void resolve(Long adminId, String note) {
+        if (status != ReportStatus.OPEN) {
+            throw new IllegalStateException("Cannot resolve a report that is not OPEN");
+        }
+        this.status = ReportStatus.RESOLVED;
+        this.resolvedBy = adminId;
+        this.resolutionNote = note;
+        this.resolvedAt = Instant.now();
+    }
+
+    public void dismiss(Long adminId, String note) {
+        if (status != ReportStatus.OPEN) {
+            throw new IllegalStateException("Cannot dismiss a report that is not OPEN");
+        }
+        this.status = ReportStatus.DISMISSED;
+        this.resolvedBy = adminId;
+        this.resolutionNote = note;
+        this.resolvedAt = Instant.now();
     }
 
     @PrePersist

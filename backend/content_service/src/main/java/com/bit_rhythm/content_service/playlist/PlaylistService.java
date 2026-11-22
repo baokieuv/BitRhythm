@@ -1,5 +1,7 @@
 package com.bit_rhythm.content_service.playlist;
 
+import com.bit_rhythm.content_service.artist.Artist;
+import com.bit_rhythm.content_service.artist.ArtistRepository;
 import com.bit_rhythm.content_service.block.BlockRepository;
 import com.bit_rhythm.content_service.common.Constant;
 import com.bit_rhythm.content_service.common.ContentStatus;
@@ -11,48 +13,56 @@ import com.bit_rhythm.content_service.common.utils.SqlLoader;
 import com.bit_rhythm.content_service.config.ContentProperties;
 import com.bit_rhythm.content_service.playlist.dto.PlaylistRequest;
 import com.bit_rhythm.content_service.playlist.dto.PlaylistResponse;
-import com.bit_rhythm.content_service.storage.StorageClient;
 import com.bit_rhythm.content_service.track.Track;
 import com.bit_rhythm.content_service.track.TrackRepository;
+import com.bit_rhythm.content_service.track.TrackService;
 import com.bit_rhythm.content_service.track.dto.TrackResponse;
 import com.bit_rhythm.core.common.CommonEnums;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.sql.Types;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
  * Playlists of the logged-in user. A playlist of somebody else is visible only when PUBLIC; every write needs ownership
- * (NOT_OWNER; for a PRIVATE playlist of somebody else answer PLAYLIST_NOT_FOUND instead, do not reveal it).
+ * (NOT_OWNER for a PUBLIC playlist of somebody else; PLAYLIST_NOT_FOUND for a PRIVATE one, so its existence is not revealed).
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlaylistService {
-
     private final PlaylistRepository playlistRepository;
     private final PlaylistTrackRepository playlistTrackRepository;
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final TransactionTemplate transactionTemplate;
     private final TrackRepository trackRepository;
+    private final TrackService trackService;
+    private final ArtistRepository artistRepository;
     private final BlockRepository blockRepository;
     private final ContentProperties contentProperties;
-    private final StorageClient storageClient;
     private final SqlLoader sqlLoader;
 
     /** Create a new playlist for the given user. */
     @Transactional
     public PlaylistResponse create(Long userId, PlaylistRequest request) {
 
-        if (playlistRepository.countByOwnerUserId(userId) >= contentProperties.playlist().maxPlaylistsPerUser())
-        {
+        if (playlistRepository.countByOwnerUserId(userId) >= contentProperties.playlist().maxPlaylistsPerUser()) {
             throw new ContentException(ContentErrorCode.PLAYLIST_LIMIT_REACHED);
         }
 
@@ -85,16 +95,17 @@ public class PlaylistService {
     public void delete(Long userId, Long playlistId) {
         Playlist playlist = findOwned(userId, playlistId);
 
-        playlistRepository.delete(playlist);
+        // children first: safe whether or not playlist_tracks has a foreign key to playlists
         playlistTrackRepository.deleteAllOfPlaylist(playlistId);
+        playlistRepository.delete(playlist);
     }
 
-    /** Get the playlists of the user, newest first, cursor pagination. */
+    /** Get the playlists of the user, newest first, keyset pagination by id. */
     @Transactional(readOnly = true)
     public CursorPage<PlaylistResponse> mine(Long userId, Long cursor, int size) {
         int limit = Paging.clampSize(size, contentProperties.pagination().maxPageSize());
 
-        List<Playlist> fetched = playlistRepository.findByOwnerUserIdOrderByCreatedAtDesc(
+        List<Playlist> fetched = playlistRepository.findByOwnerUserIdAndIdLessThanOrderByIdDesc(
                 userId, Paging.startCursor(cursor), PageRequest.ofSize(limit + 1));
 
         boolean hasMore = fetched.size() > limit;
@@ -108,45 +119,52 @@ public class PlaylistService {
         return new CursorPage<>(responses, nextCursor);
     }
 
-    /** Get the tracks in a playlist, ordered by position. */
+    /**
+     * Get the tracks in a playlist, ordered by position; cursor = position of the last row received (0 for the first page).
+     * The SQL decides WHICH rows are on the page (tracks that are no longer visible are skipped before LIMIT, but keep their
+     * position in the playlist); TrackService.toResponses builds the responses, like every other list of tracks.
+     */
+    @Transactional(readOnly = true)
     public CursorPage<TrackResponse> tracks(Long playlistId, Long viewerId, Long cursor, int size) {
         int limit = Paging.clampSize(size, contentProperties.pagination().maxPageSize());
 
         Playlist playlist = findActive(playlistId);
         assertVisible(playlist, viewerId);
 
-        long startCursor = (cursor == null) ? 0L : cursor;
         String sql = sqlLoader.load(Constant.SqlPath.GET_PLAYLIST_TRACKS);
-        String coverBucket = contentProperties.cover().bucket();
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("playlistId", playlist.getId())
                 .addValue("viewerId", viewerId, Types.BIGINT)
-                .addValue("cursor", startCursor)
+                .addValue("cursor", cursor == null ? 0L : cursor)
                 .addValue("limit", limit + 1);
 
-        List<PositionedTrack> fetched = jdbcTemplate.query(sql, params, (rs, rowNum) -> {
-            String coverUrl = storageClient.publicUrl(coverBucket, rs.getString("cover_key"));
-
-            TrackResponse track = new TrackResponse(rs, coverUrl);
-            int position = rs.getInt("position");
-
-            return new PositionedTrack(position, track);
-        });
+        List<PositionedTrackId> fetched = jdbcTemplate.query(sql, params,
+                (rs, rowNum) -> new PositionedTrackId(rs.getInt("playlist_position"), rs.getLong("id")));
 
         boolean hasMore = fetched.size() > limit;
-        List<PositionedTrack> pageItems = hasMore ? fetched.subList(0, limit) : fetched;
+        List<PositionedTrackId> pageItems = hasMore ? fetched.subList(0, limit) : fetched;
 
-        List<TrackResponse> responses = pageItems.stream()
-                .map(PositionedTrack::track)
+        // one query for the whole page, then restore the playlist order
+        Map<Long, Track> byId = trackRepository
+                .findAllById(pageItems.stream().map(PositionedTrackId::trackId).toList()).stream()
+                .collect(Collectors.toMap(Track::getId, Function.identity()));
+
+        List<Track> ordered = pageItems.stream()
+                .map(item -> byId.get(item.trackId()))
+                .filter(java.util.Objects::nonNull)
                 .toList();
+
+        List<TrackResponse> responses = trackService.toResponses(ordered, viewerId);
 
         Long nextCursor = hasMore ? (long) pageItems.getLast().position() : null;
         return new CursorPage<>(responses, nextCursor);
     }
 
-    /** Add a track to a playlist. */
-    @Transactional
+    /**
+     * Add a track to a playlist. NOT @Transactional on purpose: two requests can race on the unique (playlist_id, track_id),
+     * so the write runs in a TransactionTemplate and the constraint violation is caught outside it.
+     */
     public void addTrack(Long userId, Long playlistId, Long trackId) {
 
         Playlist playlist = findOwned(userId, playlistId);
@@ -159,7 +177,9 @@ public class PlaylistService {
                 .filter(t -> t.getStatus() == ContentStatus.PUBLISHED)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.TRACK_NOT_FOUND));
 
-        if (blockRepository.existsByBlockerIdAndBlockedId(userId, track.getArtistId())) {
+        // Track.artistId is artists.id; blocks are keyed by user id
+        Long artistOwnerUserId = artistRepository.findById(track.getArtistId()).map(Artist::getOwnerUserId).orElse(null);
+        if (artistOwnerUserId != null && blockRepository.existsByBlockerIdAndBlockedId(userId, artistOwnerUserId)) {
             throw new ContentException(ContentErrorCode.TRACK_NOT_FOUND);
         }
 
@@ -167,9 +187,19 @@ public class PlaylistService {
             throw new ContentException(ContentErrorCode.TRACK_ALREADY_IN_PLAYLIST);
         }
 
-        int nextPosition = playlistTrackRepository.maxPosition(playlistId) + 1;
-        playlistTrackRepository.save(new PlaylistTrack(playlistId, trackId, nextPosition));
-        playlistRepository.addTracks(playlistId, 1);
+        try {
+            transactionTemplate.executeWithoutResult(status -> {
+                int nextPosition = playlistTrackRepository.maxPosition(playlistId) + 1;
+                playlistTrackRepository.save(new PlaylistTrack(playlistId, trackId, nextPosition));
+                playlistRepository.addTracks(playlistId, 1);
+            });
+        } catch (DataIntegrityViolationException e) {
+            // lost the race: the other request already added it (transaction rolled back, count untouched)
+            if (playlistTrackRepository.existsByPlaylistIdAndTrackId(playlistId, trackId)) {
+                throw new ContentException(ContentErrorCode.TRACK_ALREADY_IN_PLAYLIST);
+            }
+            throw e;
+        }
     }
 
     /** Remove a track from a playlist. */
@@ -183,7 +213,8 @@ public class PlaylistService {
         }
     }
 
-    /** Reorder the tracks in a playlist. */
+    /** Reorder the tracks in a playlist: trackIds must be exactly the current set, in the new order. */
+    @Transactional
     public void reorder(Long userId, Long playlistId, List<Long> trackIds) {
         findOwned(userId, playlistId);
 
@@ -211,7 +242,8 @@ public class PlaylistService {
             if (pt.getPosition() != newPosition) {
                 updates.add(new MapSqlParameterSource()
                         .addValue("position", newPosition)
-                        .addValue("id", pt.getId()));
+                        .addValue("id", pt.getId())
+                        .addValue("playlistId", playlistId));
             }
         }
 
@@ -226,11 +258,16 @@ public class PlaylistService {
                 .orElseThrow(() -> new ContentException(ContentErrorCode.PLAYLIST_NOT_FOUND));
     }
 
-    /** Non-deleted playlist owned by the user, or PLAYLIST_NOT_FOUND / NOT_OWNER. */
+    /**
+     * Non-deleted playlist owned by the user, or PLAYLIST_NOT_FOUND / NOT_OWNER.
+     * A PRIVATE playlist of somebody else answers PLAYLIST_NOT_FOUND so its existence is not revealed.
+     */
     private Playlist findOwned(Long userId, Long playlistId) {
         Playlist playlist = findActive(playlistId);
         if (!playlist.getOwnerUserId().equals(userId)) {
-            throw new ContentException(ContentErrorCode.NOT_OWNER);
+            throw new ContentException(playlist.getVisibility() == PlaylistVisibility.PUBLIC
+                    ? ContentErrorCode.NOT_OWNER
+                    : ContentErrorCode.PLAYLIST_NOT_FOUND);
         }
         return playlist;
     }
@@ -249,5 +286,5 @@ public class PlaylistService {
         }
     }
 
-    record PositionedTrack(int position, TrackResponse track) {}
+    record PositionedTrackId(int position, long trackId) {}
 }

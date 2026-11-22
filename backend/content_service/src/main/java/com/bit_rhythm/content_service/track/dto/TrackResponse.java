@@ -1,5 +1,6 @@
 package com.bit_rhythm.content_service.track.dto;
 
+import com.bit_rhythm.content_service.album.Album;
 import com.bit_rhythm.content_service.artist.Artist;
 import com.bit_rhythm.content_service.common.ContentStatus;
 import com.bit_rhythm.content_service.genre.Genre;
@@ -9,7 +10,8 @@ import com.bit_rhythm.content_service.track.Track;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
-import java.time.LocalDateTime;
+
+import static com.bit_rhythm.content_service.common.utils.ResultSetUtils.*;
 
 /** A track as shown in lists and detail pages. The audio key is never exposed: listening goes through GET /tracks/{id}/stream. */
 public record TrackResponse(
@@ -33,23 +35,45 @@ public record TrackResponse(
 ) {
     public TrackResponse(ResultSet rs, String coverUrl) throws SQLException {
         this(
-                rs.getLong("id"),
-                rs.getString("title"),
-                rs.getLong("artist_id"),
-                rs.getString("artist_name"),
-                rs.getLong("album_id"),
-                rs.getString("album_title"),
-                rs.getInt("track_number"),
-                rs.getString("genre"),
+                getLong(rs, "id", null),
+                getString(rs, "title", null),
+                getLong(rs, "artist_id", null),
+                getString(rs, "artist_name", null),
+                getLong(rs, "album_id", null),
+                getString(rs, "album_title", null),
+                getInt(rs, "track_number", null),
+                getString(rs, "genre", null),
                 coverUrl,
-                rs.getInt("duration_seconds"),
-                rs.getBoolean("explicit_content"),
-                rs.getLong("play_count"),
-                rs.getLong("like_count"),
-                ContentStatus.valueOf(rs.getString("status")),
-                AudioStatus.valueOf(rs.getString("audio_status")),
-                rs.getTimestamp("published_at").toInstant(),
-                false
+                getInt(rs, "duration_seconds", null),
+                getBoolean(rs, "explicit_content", false),
+                getLong(rs, "play_count", 0L),
+                getLong(rs, "like_count", 0L),
+                getEnum(rs, "status", ContentStatus.class, null),
+                getEnum(rs, "audio_status", AudioStatus.class, null),
+                getInstant(rs, "published_at"),
+                getBoolean(rs, "liked", false)
+        );
+    }
+
+    public static TrackResponse from(Track track, String coverUrl, Artist artist, Album album, Genre genre, boolean liked) {
+        return new TrackResponse(
+                track.getId(),
+                track.getTitle(),
+                track.getArtistId(),
+                artist.getName(),
+                track.getAlbumId(),
+                album.getTitle(),
+                track.getTrackNumber(),
+                genre.getName(),
+                coverUrl,
+                track.getDurationSeconds(),
+                track.isExplicitContent(),
+                track.getPlayCount(),
+                track.getLikeCount(),
+                track.getStatus(),
+                track.getAudioStatus(),
+                track.getPublishedAt(),
+                liked
         );
     }
 }

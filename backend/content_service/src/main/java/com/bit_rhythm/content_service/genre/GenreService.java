@@ -4,7 +4,6 @@ import com.bit_rhythm.content_service.common.exception.ContentErrorCode;
 import com.bit_rhythm.content_service.common.exception.ContentException;
 import com.bit_rhythm.content_service.genre.dto.GenreRequest;
 import com.bit_rhythm.content_service.genre.dto.GenreResponse;
-import com.bit_rhythm.core.common.CommonEnums;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,7 +20,7 @@ public class GenreService {
     /** List all non-deleted genres, ordered by name. */
     public List<GenreResponse> list() {
 
-        List<Genre> genres = genreRepository.findAllByIsDeletedOrderByNameAsc(CommonEnums.DeletedStatus.NOT_DELETED.getCode());
+        List<Genre> genres = genreRepository.findAllOrderByNameAsc();
         return genres.stream()
                 .map(GenreResponse::from)
                 .toList();
@@ -30,7 +29,7 @@ public class GenreService {
     /** Create a new genre. */
     public GenreResponse create(GenreRequest request) {
 
-        if (genreRepository.existsByNameAndIsDeleted(request.name(), CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
+        if (genreRepository.existsByName(request.name())) {
             throw new ContentException(ContentErrorCode.GENRE_ALREADY_EXISTS);
         }
 
@@ -44,15 +43,15 @@ public class GenreService {
     /** Rename a genre by ID. */
     public GenreResponse rename(Long id, GenreRequest request) {
 
-        if (!genreRepository.existsByIdAndIsDeleted(id, CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
+        if (!genreRepository.existsById(id)) {
             throw new ContentException(ContentErrorCode.GENRE_NOT_FOUND);
         }
 
-        if (genreRepository.existsByNameAndIsDeleted(request.name(), CommonEnums.DeletedStatus.NOT_DELETED.getCode())) {
+        if (genreRepository.existsByName(request.name())) {
             throw new ContentException(ContentErrorCode.GENRE_ALREADY_EXISTS);
         }
 
-        Genre genre = genreRepository.findByIdAndIsDeleted(id, CommonEnums.DeletedStatus.NOT_DELETED.getCode())
+        Genre genre = genreRepository.findById(id)
                 .orElseThrow(() -> new ContentException(ContentErrorCode.GENRE_NOT_FOUND));
 
         genre.setName(request.name());

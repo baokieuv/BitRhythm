@@ -36,6 +36,12 @@ public class TrackLyrics extends BaseEntity {
         this.trackId = trackId;
     }
 
+    public void update(String plainText, String syncedLrc) {
+        this.plainText = plainText;
+        this.syncedLrc = syncedLrc;
+    }
+
+
     @PrePersist
     @PreUpdate
     void touch() {

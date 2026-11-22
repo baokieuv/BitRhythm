@@ -8,17 +8,15 @@ import java.util.Optional;
 
 public interface GenreRepository extends JpaRepository<Genre, Long> {
 
-    Optional<Genre> findBySlugAndIsDeleted(String slug, Integer isDeleted);
+    Optional<Genre> findBySlug(String slug);
 
-    Optional<Genre> findByIdAndIsDeleted(Long id, Integer isDeleted);
+    boolean existsByName(String name);
 
-    boolean existsByNameAndIsDeleted(String name, Integer isDeleted);
+    boolean existsBySlug(String slug);
 
-    boolean existsBySlugAndIsDeleted(String slug, Integer isDeleted);
+    boolean existsById(Long id);
 
-    boolean existsByIdAndIsDeleted(Long id, Integer isDeleted);
+    List<Genre> findByIdIn(Collection<Long> ids);   // names of the genres of a page of tracks, in ONE query
 
-    List<Genre> findByIdInAndIsDeleted(Collection<Long> ids, Integer isDeleted);   // names of the genres of a page of tracks, in ONE query
-
-    List<Genre> findAllByIsDeletedOrderByNameAsc(Integer isDeleted);
+    List<Genre> findAllOrderByNameAsc();
 }

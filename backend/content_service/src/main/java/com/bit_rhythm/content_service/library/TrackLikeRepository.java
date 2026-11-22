@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 public interface TrackLikeRepository extends JpaRepository<TrackLike, Long> {
 
@@ -32,6 +33,9 @@ public interface TrackLikeRepository extends JpaRepository<TrackLike, Long> {
     int deleteAllOfTrack(@Param("trackId") Long trackId);   // the track was deleted
 
     List<TrackLike> findByUserId(Long userId);   // [S2] account deleted: tracks whose likeCount must go down by one
+
+    @Query("SELECT l.trackId FROM TrackLike l WHERE l.userId = :userId AND l.trackId IN :trackIds")
+    Set<Long> findLikedTrackIds(@Param("userId") Long userId, @Param("trackIds") Collection<Long> trackIds);   // [S2] account deleted:
 
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
