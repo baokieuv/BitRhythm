@@ -1,11 +1,13 @@
 package com.bit_rhythm.content_service.common.exception;
 
 import com.bit_rhythm.core.exception.ApiException;
+import lombok.Getter;
 
 /**
  * Business error of content-service. The HTTP response comes from the ContentErrorCode through core's GlobalExceptionHandler.
  * The optional detail only goes to the logs (getMessage), not to the client.
  */
+@Getter
 public class ContentException extends ApiException {
 
     private final String detail;
@@ -19,9 +21,6 @@ public class ContentException extends ApiException {
         this.detail = detail;
     }
 
-    public String getDetail() {
-        return detail;
-    }
 
     @Override
     public String getMessage() {

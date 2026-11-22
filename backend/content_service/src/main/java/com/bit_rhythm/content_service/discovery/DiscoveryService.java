@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 
 /**
  * Simple, explainable recommendations: no machine learning.
- *
+ * <p>
  * Shared results (the popular list, the trending set) are cached as lists of track IDS only; the viewer's own view (liked flag,
  * covers, what is still PUBLISHED) is built after reading, never cached (design doc, section 15).
  */

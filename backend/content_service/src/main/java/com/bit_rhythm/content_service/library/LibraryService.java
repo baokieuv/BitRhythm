@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 
 /**
  * The personal library of a user: liked tracks and saved albums.
- *
+ * <p>
  * Methods that race on a unique key (likeTrack, saveAlbum) are NOT @Transactional on purpose (design doc, section 12): the write
  * runs in its own transaction and the DataIntegrityViolationException is caught outside it.
  */

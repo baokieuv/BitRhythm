@@ -45,12 +45,6 @@ public class Playlist extends BaseEntity {
     @Column(name = "track_count", nullable = false)
     private int trackCount;
 
-    public Playlist(Long ownerUserId, String name) {
-        this.ownerUserId = ownerUserId;
-        this.name = name;
-        this.trackCount = 0;
-    }
-
     public Playlist(PlaylistRequest request, Long ownerUserId) {
         this.ownerUserId = ownerUserId;
         this.name = request.name();

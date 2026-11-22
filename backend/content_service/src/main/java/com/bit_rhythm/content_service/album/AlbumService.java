@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 /**
  * The listener's view of albums: only PUBLISHED ones (an owner also sees their own drafts).
- *
+
  * Album.artistId is artists.id, NOT a user id: ownership and blocks are decided on the artist's owner user.
  * This class reads saved albums straight from SavedAlbumRepository and does not use LibraryService, because LibraryService
  * depends on AlbumService (a circular dependency otherwise).
@@ -138,7 +138,7 @@ public class AlbumService {
     private CursorPage<AlbumResponse> toPage(List<Album> fetched, int limit, Long viewerId) {
         boolean hasMore = fetched.size() > limit;
         List<Album> albums = hasMore ? fetched.subList(0, limit) : fetched;
-        Long nextCursor = hasMore ? albums.get(albums.size() - 1).getId() : null;
+        Long nextCursor = hasMore ? albums.getLast().getId() : null;
         return new CursorPage<>(toResponses(albums, viewerId), nextCursor);
     }
 

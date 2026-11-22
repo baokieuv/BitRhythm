@@ -17,7 +17,6 @@ import com.bit_rhythm.content_service.track.Track;
 import com.bit_rhythm.content_service.track.TrackRepository;
 import com.bit_rhythm.content_service.track.TrackService;
 import com.bit_rhythm.content_service.track.dto.TrackResponse;
-import com.bit_rhythm.core.common.CommonEnums;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;

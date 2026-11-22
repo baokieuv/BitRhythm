@@ -1,6 +1,5 @@
 package com.bit_rhythm.content_service.playlist;
 
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,11 +11,6 @@ import java.util.List;
 public interface PlaylistTrackRepository extends JpaRepository<PlaylistTrack, Long> {
 
     List<PlaylistTrack> findByPlaylistIdOrderByPositionAsc(Long playlistId);   // reorder: the whole playlist (max content.playlist.max-tracks)
-
-    List<PlaylistTrack> findByPlaylistIdOrderByPositionAsc(Long playlistId, Long cursor, Pageable pageable);   // pagination by id: cursor = id of the last row received (Long.MAX_VALUE for the first page). Ask for size + 1 rows.
-
-    /** Pagination by position: cursor = position of the last row received (0 for the first page). Ask for size + 1 rows. */
-    List<PlaylistTrack> findByPlaylistIdAndPositionGreaterThanOrderByPositionAsc(Long playlistId, int position, Pageable pageable);
 
     boolean existsByPlaylistIdAndTrackId(Long playlistId, Long trackId);
 

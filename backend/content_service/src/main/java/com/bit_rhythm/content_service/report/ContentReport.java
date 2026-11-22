@@ -58,14 +58,6 @@ public class ContentReport extends BaseEntity {
     @Column(name = "resolved_at")
     private Instant resolvedAt;
 
-    public ContentReport(Long reporterUserId, ReportTargetType targetType, Long targetId, ReportReason reason, String details) {
-        this.reporterUserId = reporterUserId;
-        this.targetType = targetType;
-        this.targetId = targetId;
-        this.reason = reason;
-        this.details = details;
-    }
-
     public ContentReport(CreateReportRequest request, Long reporterUserId) {
         this.reporterUserId = reporterUserId;
         this.targetType = request.targetType();

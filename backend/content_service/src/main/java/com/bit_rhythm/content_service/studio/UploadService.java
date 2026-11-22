@@ -140,7 +140,7 @@ public class UploadService {
         track.setAudioStatus(AudioStatus.READY);
         trackRepository.save(track);
 
-        return trackService.toResponses(java.util.List.of(track), userId).get(0);
+        return trackService.toResponses(java.util.List.of(track), userId).getFirst();
     }
 
     /**
@@ -165,26 +165,6 @@ public class UploadService {
         String url = storageClient.presignUpload(properties.cover().bucket(), key, contentType, ttl);
         return UploadUrlResponse.of(key, url, ttl);
     }
-
-//    public void confirmCover(Long userId, String key) {
-//        ownership.artist(userId);
-//        if (key == null || !key.startsWith("covers/" + userId + "/") || key.contains("..")) {
-//            throw new ContentException(ContentErrorCode.COVER_NOT_UPLOADED);
-//        }
-//        StoredObject object = storageClient.stat(properties.cover().bucket(), key)
-//                .orElseThrow(() -> new ContentException(ContentErrorCode.COVER_NOT_UPLOADED));
-//
-//        String contentType = normalizeType(object.contentType());
-//        String extension = COVER_EXTENSIONS.get(contentType);
-//        if (object.size() > properties.cover().maxBytes()) {
-//            deleteQuietly(properties.cover().bucket(), key);
-//            throw new ContentException(ContentErrorCode.COVER_TOO_LARGE);
-//        }
-//        if (extension == null || !properties.cover().allowedTypes().contains(contentType)) {
-//            deleteQuietly(properties.cover().bucket(), key);
-//            throw new ContentException(ContentErrorCode.COVER_TYPE_NOT_ALLOWED);
-//        }
-//    }
 
     /** Rejected upload: delete the object and forget the key, so the artist must ask for a new URL. */
     private void discardUpload(Track track, String bucket, String key) {

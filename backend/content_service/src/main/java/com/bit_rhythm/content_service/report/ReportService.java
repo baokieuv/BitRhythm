@@ -51,7 +51,7 @@ public class ReportService {
      * Report a track, album or playlist. NOT @Transactional on purpose (design doc, section 12): two identical requests can race
      * on the unique key of OPEN reports, so the save is its own transaction and the violation is caught here and mapped to the
      * same error as the pre-check.
-     *
+     * <p>
      * The reporter is NOT subject to block rules: someone blocked by an artist must still be able to report that artist's content.
      */
     public ReportResponse create(Long reporterUserId, CreateReportRequest request) {

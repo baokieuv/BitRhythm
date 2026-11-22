@@ -15,15 +15,6 @@ public interface PlayHistoryRepository extends JpaRepository<PlayHistory, Long> 
     // Keyset pagination (cursor = id of the last row received, Long.MAX_VALUE for the first page). Ask for size + 1 rows.
     List<PlayHistory> findByUserIdAndIdLessThanOrderByIdDesc(Long userId, Long cursor, Pageable pageable);
 
-    /**
-     * Retention, ONE statement: returns how many rows were deleted. The threshold is an Instant like PlayHistory.playedAt
-     * (it was a LocalDateTime, which does not match the field type). For a big table use deleteBatchOlderThan.
-     */
-    @Transactional
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("DELETE FROM PlayHistory h WHERE h.playedAt < :threshold")
-    int deleteOlderThan(@Param("threshold") Instant threshold);
-
     /** Retention in batches: deletes at most :limit rows (MariaDB DELETE ... LIMIT), each call is its own short transaction. */
     @Transactional
     @Modifying

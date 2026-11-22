@@ -2,7 +2,6 @@ package com.bit_rhythm.content_service.artist;
 
 import com.bit_rhythm.content_service.artist.dto.ArtistResponse;
 import com.bit_rhythm.content_service.artist.dto.UpdateArtistRequest;
-import com.bit_rhythm.content_service.block.BlockRepository;
 import com.bit_rhythm.content_service.common.exception.ContentErrorCode;
 import com.bit_rhythm.content_service.common.exception.ContentException;
 import com.bit_rhythm.content_service.config.ContentProperties;
@@ -18,7 +17,7 @@ import java.util.Locale;
 
 /**
  * The artist page of a user with the role ARTIST.
- *
+ * <p>
  * Do NOT put @Transactional on the methods of this class: saveMine relies on two things that need NO outer transaction. A duplicate
  * insert (two first calls at once) must fail in its own transaction and be followed by a fresh read; and the previous cover is deleted
  * from the object store only AFTER the database update has really been committed.

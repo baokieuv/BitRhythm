@@ -36,7 +36,7 @@ public class ContentEventPublisher {
      * event is saved or rolled back together with the status change. The caller calls it for the FIRST publication only
      * (published_at was null); a track published again is the same fact, and the deterministic eventId lets consumers drop a
      * repeat anyway.
-     *
+     * <p>
      * aggregateId = the artist id (not the track id): Kafka keys by it, so all events of one artist stay in order.
      * A serialization failure is NOT swallowed: it rolls the publication back, because the event could not be recorded.
      */

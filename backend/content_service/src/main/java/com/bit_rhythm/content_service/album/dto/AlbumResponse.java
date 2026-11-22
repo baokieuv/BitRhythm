@@ -20,20 +20,6 @@ public record AlbumResponse(
         boolean saved             // has the viewer saved it to their library?
 ) {
 
-    public AlbumResponse(Album album, Artist artist, String coverUrl) {
-        this(
-                album.getId(),
-                album.getArtistId(),
-                artist.getName(),
-                album.getTitle(),
-                coverUrl,
-                album.getReleaseDate(),
-                album.getStatus(),
-                album.getPublishedAt(),
-                false
-        );
-    }
-
     public AlbumResponse(Album album, Artist artist, String coverUrl, boolean saved) {
         this(
                 album.getId(),

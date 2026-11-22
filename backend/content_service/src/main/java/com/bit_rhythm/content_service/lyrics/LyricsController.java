@@ -8,6 +8,7 @@ import com.bit_rhythm.content_service.lyrics.dto.LyricsRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +31,7 @@ public class LyricsController {
 
     /** ROLE_ARTIST only (SecurityConfig: /studio/**). */
     @PutMapping("/studio/tracks/{id}/lyrics")
+    @PreAuthorize("hasAuthority('write:artist:lyrics')")
     public ResponseEntity<ApiResponseFormat<Object>> save(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
                                                           @Valid @RequestBody LyricsRequest request) {
         return responseFactory.response(CoreErrorCode.SUCCESS, lyricsService.save(CurrentUser.id(jwt), id, request));

@@ -14,7 +14,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 /**
  * Artist page of a user with the role ARTIST. ownerUserId is the user id of auth-service (one artist per user). The name is

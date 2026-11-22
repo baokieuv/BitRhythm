@@ -27,5 +27,4 @@ public interface PlaylistRepository extends JpaRepository<Playlist, Long> {
 
     Optional<Playlist> findByIdAndIsDeleted(Long id, Integer isDeleted);
 
-    List<Playlist> findByOwnerUserIdOrderByCreatedAtDesc(Long ownerUserId, Long cursor, Pageable pageable);
 }

@@ -84,7 +84,7 @@ public class AccountLifecycleService {
      *  2. their likes, after taking each liked track's like_count down by one;
      *  3. their saved albums and play history;
      *  4. their artist's music is HIDDEN, not deleted (PRODUCT DECISION, see below).
-     *
+     * <p>
      * Deleting an artist's music is irreversible and also has to remove the likes, playlist entries and saved albums that point at
      * it, plus the audio and cover objects (in an afterCommit callback, never failing the event over a missing object). Until the
      * product decides, the safe choice is the reversible one: hide it.

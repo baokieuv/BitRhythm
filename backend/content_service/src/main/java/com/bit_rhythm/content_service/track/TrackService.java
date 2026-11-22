@@ -67,7 +67,7 @@ public class TrackService {
             throw new ContentException(ContentErrorCode.TRACK_NOT_FOUND);
         }
 
-        return toResponses(List.of(track), viewerId).get(0);
+        return toResponses(List.of(track), viewerId).getFirst();
     }
 
     /** New releases, optionally of one genre (genreId null = all). Keyset pagination by id, newest first. */
@@ -200,7 +200,7 @@ public class TrackService {
     private CursorPage<TrackResponse> toPage(List<Track> rows, int limit, Long viewerId) {
         boolean hasMore = rows.size() > limit;
         List<Track> pageRows = hasMore ? rows.subList(0, limit) : rows;
-        Long nextCursor = hasMore ? pageRows.get(pageRows.size() - 1).getId() : null;
+        Long nextCursor = hasMore ? pageRows.getLast().getId() : null;
         return new CursorPage<>(toResponses(pageRows, viewerId), nextCursor);
     }
 
