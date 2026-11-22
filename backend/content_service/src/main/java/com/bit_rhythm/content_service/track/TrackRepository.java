@@ -58,4 +58,17 @@ public interface TrackRepository extends JpaRepository<Track, Long> {
     List<Track> findByStatusOrderByPlayCountDescIdDesc(ContentStatus status, Pageable pageable);
 
     List<Track> findByArtistId(Long artistId);   // [S2] account deleted: hide everything of the artist
+
+    @Query("SELECT t FROM Track t WHERE t.status = :status "
+            + "AND (t.genreId IN :genreIds OR t.artistId IN :artistIds) ORDER BY t.playCount DESC, t.id DESC")
+    List<Track> findRecommendationCandidates(@Param("status") ContentStatus status,
+                                             @Param("genreIds") Collection<Long> genreIds,
+                                             @Param("artistIds") Collection<Long> artistIds, Pageable pageable);
+
+    List<Track> findByArtistIdOrderByPlayCountDescIdDesc(Long artistId, Pageable pageable);
+
+    interface ArtistTotals { long getPlays(); long getLikes(); }
+
+    @Query("SELECT COALESCE(SUM(t.playCount),0L) AS plays, COALESCE(SUM(t.likeCount),0L) AS likes FROM Track t WHERE t.artistId = :artistId")
+    ArtistTotals totalsOfArtist(@Param("artistId") Long artistId);
 }
