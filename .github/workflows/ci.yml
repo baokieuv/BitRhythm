@@ -12,10 +12,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [auth_service, user_service, gateway, notification_service]
+        service: [auth_service, user_service, gateway, notification_service, content_service]
     defaults:
       run:
         working-directory: backend/${{ matrix.service }}
+
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ROOT_PASSWORD: testpassword
+          MARIADB_DATABASE: testdb
+          MARIADB_USER: testuser
+          MARIADB_PASSWORD: testpassword
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - name: Checkout repository
@@ -30,8 +46,15 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+          cache-dependency-path: backend/**/pom.xml
 
       - name: Run Maven verify
+        env:
+          DB_URL: jdbc:mariadb://localhost:3306/testdb
+          DB_USERNAME: testuser
+          DB_PASSWORD: testpassword
+          SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.mariadb.jdbc.Driver
+          SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
         run: mvn clean verify
 
       - name: Set up Docker Buildx
@@ -50,8 +73,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/BitRhythm-${{ matrix.service }}:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/BitRhythm-${{ matrix.service }}:${{ env.SHORT_SHA }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/bitrhythm-${{ matrix.service }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/bitrhythm-${{ matrix.service }}:${{ env.SHORT_SHA }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
@@ -98,7 +121,7 @@ jobs:
   #         platforms: linux/amd64
   #         push: true
   #         tags: |
-  #           ${{ secrets.DOCKERHUB_USERNAME }}/BitRhythm-frontend:latest
-  #           ${{ secrets.DOCKERHUB_USERNAME }}/BitRhythm-frontend:${{ env.SHORT_SHA }}
+  #           ${{ secrets.DOCKERHUB_USERNAME }}/bitrhythm-frontend:latest
+  #           ${{ secrets.DOCKERHUB_USERNAME }}/bitrhythm-frontend:${{ env.SHORT_SHA }}
   #         cache-from: type=gha,scope=frontend
   #         cache-to: type=gha,mode=max,scope=frontend
