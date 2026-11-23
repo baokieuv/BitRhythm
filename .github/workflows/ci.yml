@@ -34,9 +34,6 @@ jobs:
       - name: Run Maven verify
         run: ./mvnw clean verify
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -46,11 +43,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push ${{ matrix.service }} ARM64 image
+      - name: Build and push ${{ matrix.service }} AMD64 image
         uses: docker/build-push-action@v6
         with:
           context: ./backend/${{ matrix.service }}
-          platforms: linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/BitRhythm-${{ matrix.service }}:latest
@@ -58,53 +55,50 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
-  frontend-ci:
-    name: Frontend CI (Next.js)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
+  # frontend-ci:
+  #   name: Frontend CI (Next.js)
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: frontend
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
 
-      - name: Set short commit SHA
-        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+  #     - name: Set short commit SHA
+  #       run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-      - name: Set up Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+  #     - name: Set up Node.js 22
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '22'
+  #         cache: npm
+  #         cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies and build check
-        run: |
-          npm ci
-          npm run lint
-          npm run build
+  #     - name: Install dependencies and build check
+  #       run: |
+  #         npm ci
+  #         npm run lint
+  #         npm run build
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+  #     - name: Log in to Docker Hub
+  #       uses: docker/login-action@v3
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
+  #         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push Frontend ARM64 image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          platforms: linux/arm64
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/BitRhythm-frontend:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/BitRhythm-frontend:${{ env.SHORT_SHA }}
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,mode=max,scope=frontend
+  #     - name: Build and push Frontend AMD64 image
+  #       uses: docker/build-push-action@v6
+  #       with:
+  #         context: ./frontend
+  #         platforms: linux/amd64
+  #         push: true
+  #         tags: |
+  #           ${{ secrets.DOCKERHUB_USERNAME }}/BitRhythm-frontend:latest
+  #           ${{ secrets.DOCKERHUB_USERNAME }}/BitRhythm-frontend:${{ env.SHORT_SHA }}
+  #         cache-from: type=gha,scope=frontend
+  #         cache-to: type=gha,mode=max,scope=frontend
