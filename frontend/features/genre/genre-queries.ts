@@ -2,7 +2,7 @@ import 'server-only';
 
 import { cacheLife, cacheTag } from 'next/cache';
 import { isSlowEnabled } from '@/components/demo/demo-slow';
-import { prisma } from '@/lib/db';
+import { backendFetch, unwrapList } from '@/lib/backend';
 import { delay } from '@/lib/utils';
 
 export async function getGenres() {
@@ -15,13 +15,9 @@ async function getGenresCached(slow: boolean) {
   cacheLife('days');
 
   await delay(600, slow);
-  const rows = await prisma.track.groupBy({
-    _count: { genre: true },
-    by: ['genre'],
-    orderBy: { _count: { genre: 'desc' } },
-  });
-  return rows.map(r => ({
-    count: r._count.genre,
-    genre: r.genre,
+  const rows = await backendFetch<unknown[]>('/api/contents/genres', {}, { auth: false });
+  return unwrapList<{ id: number; name: string; slug: string }>(rows).map(r => ({
+    count: 0,
+    genre: r.name,
   }));
 }

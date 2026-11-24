@@ -17,23 +17,35 @@ export function SignInForm() {
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
-      <label htmlFor="email" className="text-muted text-sm">
-        Demo email
+      <label htmlFor="identifier" className="text-muted text-sm">
+        Username or email
       </label>
       <input
-        id="email"
-        name="email"
-        type="email"
-        autoComplete="email"
+        id="identifier"
+        name="identifier"
+        type="text"
+        autoComplete="username"
         required
         autoFocus
-        defaultValue="demo@example.com"
-        placeholder="you@example.com"
+        placeholder="your username or email"
+        aria-invalid={state?.error ? true : undefined}
+        aria-describedby={state?.error ? 'sign-in-hint sign-in-error' : 'sign-in-hint'}
+      />
+      <label htmlFor="password" className="text-muted text-sm">
+        Password
+      </label>
+      <input
+        id="password"
+        name="password"
+        type="password"
+        autoComplete="current-password"
+        required
+        minLength={1}
         aria-invalid={state?.error ? true : undefined}
         aria-describedby={state?.error ? 'sign-in-hint sign-in-error' : 'sign-in-hint'}
       />
       <p id="sign-in-hint" className="text-muted -mt-1 text-xs">
-        Any fake email works.
+        Use your BitRhythm account.
       </p>
       {state?.error ? (
         <p id="sign-in-error" role="alert" className="text-sm text-red-500">

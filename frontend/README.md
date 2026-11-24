@@ -25,31 +25,22 @@ A [Next.js 16.3](https://nextjs.org/blog/next-16-3) music player demo showcasing
 
 ## Getting started
 
-NextBeats runs on Postgres. Set `DATABASE_URL` in `.env.local`, then:
+NextBeats is a frontend-only client for the BitRhythm backend gateway.
+
+Create `.env.local` from `.env.sample`, then start the frontend:
 
 ```bash
 pnpm install
-pnpm run prisma.push
-pnpm run prisma.seed
-pnpm run dev
+pnpm dev
 ```
 
-To regenerate a compact track, playlist, and genre cover from the current database:
+The default backend gateway URL is `http://localhost:8080`. Override it with:
 
 ```bash
-pnpm covers:icons
+BACKEND_URL=http://localhost:8080
 ```
 
-<details>
-<summary>Run locally without Postgres</summary>
-
-Drop this prompt into your agent to swap the datasource for SQLite:
-
-> Set up NextBeats to run locally on SQLite instead of Postgres. Swap `provider = "postgresql"` to `provider = "sqlite"` in `prisma/schema.prisma`. Replace `@prisma/adapter-pg` with `@prisma/adapter-better-sqlite3` in `lib/db.ts` and `prisma/seed.ts`, using `new PrismaBetterSqlite3({ url })` where `url` is `process.env.DATABASE_URL` with the `file:` prefix stripped. Remove any `mode: 'insensitive'` Prisma filter options since SQLite doesn't support them. Install `@prisma/adapter-better-sqlite3` and `better-sqlite3`, uninstall `@prisma/adapter-pg`, `pg`, and `@types/pg`. Write `DATABASE_URL=file:./prisma/dev.db` to `.env.local`.
-
-The schema is otherwise identical, so the rest of the app behaves the same as production.
-
-</details>
+No database or Prisma setup is required in the frontend.
 
 ## Testing
 
@@ -64,7 +55,6 @@ pnpm test:e2e
 - **[Next.js 16.3](https://nextjs.org/)**: App Router, Cache Components, Server Functions
 - **[React 19](https://react.dev/)** with React Compiler: Suspense, View Transitions, `useOptimistic`
 - **[TypeScript](https://www.typescriptlang.org/)** and **[Tailwind CSS v4](https://tailwindcss.com/)**
-- **[Prisma 7](https://www.prisma.io/)** on PostgreSQL
 - **[vGPU](https://github.com/vercel-labs/vgpu)** for animated WebGPU cover art and pre-rendered first frames
 - **[Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)** for procedural per-genre synthesis
 

@@ -4,8 +4,7 @@ import { revalidateTag, updateTag } from 'next/cache';
 import { z } from 'zod';
 import { isSlowEnabled } from '@/components/demo/demo-slow';
 import { verifyAuth } from '@/features/user/user-queries';
-import { Prisma } from '@/generated/prisma/client';
-import { prisma } from '@/lib/db';
+import { backendFetch } from '@/lib/backend';
 import { delay } from '@/lib/utils';
 
 const trackIdSchema = z.string().min(1);
@@ -15,25 +14,12 @@ export async function toggleFavorite(trackId: string) {
   await delay(200, await isSlowEnabled());
   const id = trackIdSchema.parse(trackId);
 
-  const existing = await prisma.userFavorite.findUnique({
-    where: { userId_trackId: { trackId: id, userId } },
-  });
-
-  if (existing) {
-    await prisma.userFavorite.deleteMany({
-      where: { trackId: id, userId },
-    });
-  } else {
-    try {
-      await prisma.userFavorite.create({
-        data: { trackId: id, userId },
-      });
-    } catch (error) {
-      if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) {
-        throw error;
-      }
-    }
-  }
+  const favorites = await backendFetch<Array<{ id: number }>>('/api/contents/library/tracks');
+  const isFavorite = favorites.some(track => String(track.id) === id);
+  await backendFetch(
+    `/api/contents/tracks/${id}/like`,
+    { method: isFavorite ? 'DELETE' : 'PUT' },
+  );
 
   updateTag(`track-${id}:${userId}`);
   updateTag(`favorites:${userId}`);

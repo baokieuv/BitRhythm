@@ -4,9 +4,9 @@ import { cacheLife, cacheTag } from 'next/cache';
 import { notFound } from 'next/navigation';
 import { isSlowEnabled } from '@/components/demo/demo-slow';
 import { verifyAuth } from '@/features/user/user-queries';
-import { prisma } from '@/lib/db';
+import { backendFetch, unwrapList } from '@/lib/backend';
 import { delay } from '@/lib/utils';
-import { toTrack } from '@/types/track';
+import { toBackendTrack, type BackendTrack } from '@/types/track';
 
 const LIBRARY_PAGE_SIZE = 100;
 
@@ -18,19 +18,12 @@ async function getLibraryCached(page: number, slow: boolean) {
   'use cache';
   cacheTag('library');
   cacheLife('hours');
-
   await delay(400, slow);
-  const rows = await prisma.track.findMany({
-    orderBy: { createdAt: 'desc' },
-    skip: (page - 1) * LIBRARY_PAGE_SIZE,
-    take: LIBRARY_PAGE_SIZE + 1,
-  });
-  const hasMore = rows.length > LIBRARY_PAGE_SIZE;
-  const items = hasMore ? rows.slice(0, LIBRARY_PAGE_SIZE) : rows;
-  return {
-    hasMore,
-    tracks: items.map(row => toTrack(row)),
-  };
+  const rows = await backendFetch<unknown>('/api/contents/tracks', {}, { auth: false });
+  const tracks = unwrapList<BackendTrack>(rows).map(toBackendTrack);
+  const start = (page - 1) * LIBRARY_PAGE_SIZE;
+  const items = tracks.slice(start, start + LIBRARY_PAGE_SIZE);
+  return { hasMore: tracks.length > start + LIBRARY_PAGE_SIZE, tracks: items };
 }
 
 export async function getFavorites() {
@@ -41,14 +34,9 @@ export async function getFavorites() {
 async function getFavoritesForUser(userId: string, slow: boolean) {
   'use cache';
   cacheTag(`favorites:${userId}`);
-
   await delay(500, slow);
-  const rows = await prisma.userFavorite.findMany({
-    include: { track: true },
-    orderBy: { addedAt: 'desc' },
-    where: { userId },
-  });
-  return rows.map(row => toTrack(row.track, { favorites: [row] }));
+  const rows = await backendFetch<unknown>('/api/contents/library/tracks');
+  return unwrapList<BackendTrack>(rows).map(toBackendTrack);
 }
 
 export async function getUserFavoriteIds() {
@@ -59,12 +47,8 @@ export async function getUserFavoriteIds() {
 async function getUserFavoriteIdsForUser(userId: string) {
   'use cache';
   cacheTag(`favorites:${userId}`);
-
-  const rows = await prisma.userFavorite.findMany({
-    select: { trackId: true },
-    where: { userId },
-  });
-  return new Set(rows.map(r => r.trackId));
+  const rows = await backendFetch<unknown>('/api/contents/library/tracks');
+  return new Set(unwrapList<BackendTrack>(rows).map(row => String(row.id)));
 }
 
 export async function getRecentlyPlayed(limit: number = 8) {
@@ -76,15 +60,9 @@ async function getRecentlyPlayedForUser(userId: string, limit: number, slow: boo
   'use cache';
   cacheTag(`recently-played:${userId}`);
   cacheLife('minutes');
-
   await delay(500, slow);
-  const rows = await prisma.userTrackPlay.findMany({
-    include: { track: true },
-    orderBy: { lastPlayedAt: 'desc' },
-    take: limit,
-    where: { userId },
-  });
-  return rows.map(row => toTrack(row.track, { trackPlays: [row] }));
+  const rows = await backendFetch<unknown>(`/api/contents/library/history?size=${limit}`);
+  return unwrapList<BackendTrack>(rows).map(toBackendTrack);
 }
 
 export async function getTrack(id: string) {
@@ -95,16 +73,10 @@ export async function getTrack(id: string) {
 async function getTrackForUser(id: string, userId: string, slow: boolean) {
   'use cache';
   cacheTag('tracks', `track-${id}`, `track-${id}:${userId}`);
-
   await delay(400, slow);
-  const row = await prisma.track.findUnique({
-    include: {
-      favorites: { where: { userId } },
-    },
-    where: { id },
-  });
+  const row = await backendFetch<BackendTrack | null>(`/api/contents/tracks/${id}`);
   if (!row) notFound();
-  return toTrack(row, { favorites: row.favorites });
+  return toBackendTrack(row);
 }
 
 export async function getMostPlayed(limit: number = 8) {
@@ -114,14 +86,9 @@ export async function getMostPlayed(limit: number = 8) {
 async function getMostPlayedCached(limit: number, slow: boolean) {
   'use cache';
   cacheTag('tracks');
-
   await delay(700, slow);
-  const rows = await prisma.track.findMany({
-    orderBy: { playCount: 'desc' },
-    take: limit,
-    where: { playCount: { gt: 0 } },
-  });
-  return rows.map(row => toTrack(row));
+  const rows = await backendFetch<unknown>(`/api/contents/discover/popular?size=${limit}`);
+  return unwrapList<BackendTrack>(rows).map(toBackendTrack);
 }
 
 export async function getDiscover(limit: number = 8) {
@@ -132,16 +99,9 @@ export async function getDiscover(limit: number = 8) {
 async function getDiscoverForUser(userId: string, limit: number, slow: boolean) {
   'use cache';
   cacheTag(`discover:${userId}`);
-
   await delay(1100, slow);
-  const rows = await prisma.track.findMany({
-    orderBy: { playCount: 'desc' },
-    take: limit,
-    where: {
-      favorites: { none: { userId } },
-    },
-  });
-  return rows.map(row => toTrack(row));
+  const rows = await backendFetch<unknown>(`/api/contents/discover/for-you?size=${limit}`);
+  return unwrapList<BackendTrack>(rows).map(toBackendTrack);
 }
 
 export async function getTracksByGenre(genre: string) {
@@ -151,13 +111,11 @@ export async function getTracksByGenre(genre: string) {
 async function getTracksByGenreCached(genre: string, slow: boolean) {
   'use cache';
   cacheTag('tracks', `genre-${genre}`);
-
   await delay(900, slow);
-  const rows = await prisma.track.findMany({
-    orderBy: { playCount: 'desc' },
-    where: { genre },
-  });
-  return rows.map(row => toTrack(row));
+  const rows = await backendFetch<unknown>('/api/contents/tracks?size=100');
+  return unwrapList<BackendTrack>(rows)
+    .map(toBackendTrack)
+    .filter(track => track.genre === genre);
 }
 
 export async function getRecommendedTracks(excludeTrackId: string, limit: number = 5) {
@@ -168,17 +126,12 @@ export async function getRecommendedTracks(excludeTrackId: string, limit: number
 async function getRecommendedTracksForUser(excludeTrackId: string, userId: string, limit: number, slow: boolean) {
   'use cache';
   cacheTag(`recommendations:${userId}`);
-
   await delay(900, slow);
-  const rows = await prisma.track.findMany({
-    orderBy: { playCount: 'desc' },
-    take: limit,
-    where: {
-      favorites: { none: { userId } },
-      id: { not: excludeTrackId },
-    },
-  });
-  return rows.map(row => toTrack(row));
+  const rows = await backendFetch<unknown>(`/api/contents/discover/for-you?size=${limit + 1}`);
+  return unwrapList<BackendTrack>(rows)
+    .map(toBackendTrack)
+    .filter(track => track.id !== excludeTrackId)
+    .slice(0, limit);
 }
 
 export async function searchTracks(query: string) {
@@ -189,18 +142,11 @@ async function searchTracksCached(query: string, slow: boolean) {
   'use cache';
   cacheTag('search');
   cacheLife('hours');
-
   await delay(800, slow);
-  const rows = await prisma.track.findMany({
-    orderBy: { playCount: 'desc' },
-    take: 30,
-    where: {
-      OR: [
-        { title: { contains: query, mode: 'insensitive' } },
-        { artist: { contains: query, mode: 'insensitive' } },
-        { album: { contains: query, mode: 'insensitive' } },
-      ],
-    },
-  });
-  return rows.map(row => toTrack(row));
+  const rows = await backendFetch<unknown>(
+    `/api/contents/search?q=${encodeURIComponent(query)}&type=TRACK&size=30`,
+    {},
+    { auth: false },
+  );
+  return unwrapList<BackendTrack>(rows).map(toBackendTrack);
 }

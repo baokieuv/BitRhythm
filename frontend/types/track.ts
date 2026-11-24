@@ -1,5 +1,3 @@
-import type { Track as PrismaTrack, UserFavorite, UserTrackPlay } from '@/generated/prisma/client';
-
 export type Track = {
   id: string;
   title: string;
@@ -14,23 +12,35 @@ export type Track = {
   createdAt: Date;
 };
 
-type UserData = {
-  favorites?: UserFavorite[];
-  trackPlays?: UserTrackPlay[];
+export type BackendTrack = {
+  id: number | string;
+  title: string;
+  artistName?: string;
+  artist?: string;
+  albumTitle?: string;
+  album?: string;
+  genre?: string;
+  coverUrl?: string;
+  coverColor?: string;
+  durationSeconds?: number;
+  duration?: number;
+  playCount?: number;
+  liked?: boolean;
+  publishedAt?: string;
 };
 
-export function toTrack(row: PrismaTrack, userData?: UserData): Track {
+export function toBackendTrack(row: BackendTrack): Track {
   return {
-    album: row.album,
-    artist: row.artist,
-    coverColor: row.coverColor,
-    createdAt: row.createdAt,
-    duration: row.duration,
-    genre: row.genre,
-    id: row.id,
-    isFavorite: userData?.favorites ? userData.favorites.length > 0 : false,
-    lastPlayedAt: userData?.trackPlays?.[0]?.lastPlayedAt ?? null,
-    playCount: row.playCount,
+    album: row.albumTitle ?? row.album ?? '',
+    artist: row.artistName ?? row.artist ?? '',
+    coverColor: row.coverColor ?? 'from-violet-500 to-purple-600',
+    createdAt: row.publishedAt ? new Date(row.publishedAt) : new Date(0),
+    duration: row.durationSeconds ?? row.duration ?? 0,
+    genre: row.genre ?? '',
+    id: String(row.id),
+    isFavorite: row.liked ?? false,
+    lastPlayedAt: null,
+    playCount: row.playCount ?? 0,
     title: row.title,
   };
 }
