@@ -5,7 +5,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:mariadb://localhost:3306/notification_service}
     username: ${DB_USERNAME:notification_service}
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD:change-me}
     driver-class-name: org.mariadb.jdbc.Driver
     hikari:
       maximum-pool-size: ${DB_POOL_MAX:10}
@@ -26,7 +26,7 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      password: ${REDIS_PASSWORD:change-me}
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
@@ -46,8 +46,8 @@ spring:
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:1025}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    username: ${MAIL_USERNAME:change-me}
+    password: ${MAIL_PASSWORD:change-me}
     properties:
       "[mail.smtp.auth]": ${MAIL_SMTP_AUTH:false}
       "[mail.smtp.starttls.enable]": ${MAIL_STARTTLS:false}
@@ -65,7 +65,7 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8081/.well-known/jwks.json}
-          issuer-uri: ${JWT_ISSUER}                                  # exactly auth-service's TOKEN_ISSUER
+          issuer-uri: ${JWT_ISSUER:http://localhost:8081}                                  # exactly auth-service's TOKEN_ISSUER
           # users (inbox API) + services (internal API, audience = this service's name)
           audiences: ${JWT_AUDIENCES:bit-rhythm-api,notification-service}
 
@@ -84,8 +84,8 @@ notification:
     from: ${MAIL_FROM:no-reply@bitrhythm.local}   # smtp provider only: Gmail always sends from its own account
     from-name: Bit Rhythm
     gmail:                               # used when provider = gmail
-      username: ${GMAIL_USERNAME:}
-      app-password: ${GMAIL_APP_PASSWORD:}
+      username: ${GMAIL_USERNAME:change-me}
+      app-password: ${GMAIL_APP_PASSWORD:change-me}  # Gmail app password (not the account password)
   inbox:
     heartbeat: 10s                       # SSE keep-alive, must be shorter than any proxy/gateway read timeout
     max-page-size: 50

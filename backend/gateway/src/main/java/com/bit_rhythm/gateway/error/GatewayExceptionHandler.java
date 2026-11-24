@@ -35,7 +35,7 @@ public class GatewayExceptionHandler extends ResponseEntityExceptionHandler {
     private static final Logger LOG = LoggerFactory.getLogger(GatewayExceptionHandler.class);
 
     @ExceptionHandler(Exception.class)
-    ResponseEntity<Object> handleUnexpected(Exception exception, HttpServletRequest request) {
+    public ResponseEntity<Object> handleUnexpected(Exception exception, HttpServletRequest request) {
         HttpStatus status;
         String detail;
 
